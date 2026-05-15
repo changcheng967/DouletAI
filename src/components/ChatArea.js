@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, Send, Square, Sparkles, Brain, Lightbulb, Code2, BookOpen, ArrowDown, MessageSquarePlus, Settings2, Pencil, X as XIcon, Eye, Mic, MicOff, Keyboard, Share2, GitBranch, Timer, Thermometer, Hash, Zap } from 'lucide-react';
+import { Menu, Send, Square, Sparkles, Brain, Lightbulb, Code2, BookOpen, ArrowDown, MessageSquarePlus, Settings2, Pencil, X as XIcon, Eye, Mic, MicOff, Keyboard, Share2, GitBranch, Timer, Thermometer, Hash, Zap, Clock } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import ModelSelector from './ModelSelector';
 import { useToast } from './Toast';
@@ -19,6 +19,35 @@ const KEYBOARD_SHORTCUTS = [
   { keys: 'Ctrl + /', desc: 'Keyboard shortcuts' },
   { keys: 'Ctrl + Shift + S', desc: 'Share chat' },
   { keys: 'Escape', desc: 'Close dialogs' },
+];
+
+const CAPABILITY_ICONS = { vision: <Eye size={10} />, reasoning: <Brain size={10} />, coding: <Code2 size={10} /> };
+const ROUTING_TAGS = new Set(['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7']);
+const getCapabilities = (tags) => (tags || []).filter(t => !ROUTING_TAGS.has(t));
+
+function SpeedBadge({ speed, ttk }) {
+  if (ttk != null) return <span className="badge badge-speed"><Zap size={8} />{ttk < 1 ? '<1s' : `${Math.round(ttk)}s`}</span>;
+  if (speed === 'slow') return <span className="badge badge-slow"><Clock size={9} /> Slow</span>;
+  if (speed === 'medium') return <span className="badge badge-medium"><Clock size={9} /> Med</span>;
+  return null;
+}
+
+const PROVIDER_DISPLAY = {
+  anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', meta: 'Meta',
+  mistralai: 'Mistral', qwen: 'Qwen', 'x-ai': 'xAI', 'deepseek-ai': 'DeepSeek',
+  nvidia: 'NVIDIA', 'z-ai': 'Z.AI', microsoft: 'Microsoft', deepseek: 'DeepSeek',
+  minimax: 'MiniMax', ring: 'Ring', 'arli-ai': 'Arli AI', moonshotai: 'Moonshot',
+  minimaxai: 'MiniMax', 'stepfun-ai': 'StepFun', sarvamai: 'Sarvam',
+  stockmark: 'Stockmark', upstage: 'Upstage',
+};
+
+const FEATURED_IDS = [
+  'meta/llama-4-maverick-17b-128e-instruct',
+  'qwen/qwen3-coder-480b-a35b-instruct',
+  'mistralai/mistral-nemotron',
+  'openai/gpt-oss-120b',
+  'nvidia/llama-3.3-nemotron-super-49b-v1.5',
+  'groq/deepseek-r1-distill-llama-70b',
 ];
 
 function KeyboardShortcuts({ onClose }) {
@@ -48,14 +77,6 @@ function KeyboardShortcuts({ onClose }) {
 
 function ModelInfoPopup({ model, onClose }) {
   if (!model) return null;
-  const PROVIDER_NAMES = {
-    anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', meta: 'Meta',
-    mistralai: 'Mistral', qwen: 'Qwen', 'x-ai': 'xAI', 'deepseek-ai': 'DeepSeek',
-    nvidia: 'NVIDIA', 'z-ai': 'Z.AI', microsoft: 'Microsoft', deepseek: 'DeepSeek',
-    minimax: 'MiniMax', ring: 'Ring', 'arli-ai': 'Arli AI', moonshotai: 'Moonshot',
-    minimaxai: 'MiniMax', 'stepfun-ai': 'StepFun', sarvamai: 'Sarvam',
-    stockmark: 'Stockmark', upstage: 'Upstage',
-  };
   return (
     <div className="model-info-popup">
       <div className="model-info-header">
@@ -63,29 +84,17 @@ function ModelInfoPopup({ model, onClose }) {
         <button className="icon-btn" onClick={onClose}><XIcon size={14} /></button>
       </div>
       <div className="model-info-body">
-        <div className="model-info-row"><span>Provider</span><span>{PROVIDER_NAMES[model.provider] || model.provider}</span></div>
+        <div className="model-info-row"><span>Provider</span><span>{PROVIDER_DISPLAY[model.provider] || model.provider}</span></div>
         {model.context_length && <div className="model-info-row"><span>Context</span><span>{(model.context_length/1000).toFixed(0)}K tokens</span></div>}
         <div className="model-info-row"><span>Speed</span><span className={`speed-badge speed-${model.speed}`}>{model.speed}</span></div>
-        {model.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).length > 0 && (
+        {getCapabilities(model.tags).length > 0 && (
           <div className="model-info-tags">
-            {model.tags.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
+            {getCapabilities(model.tags).map(t => (
+              <span key={t} className={`badge badge-${t}`}>{CAPABILITY_ICONS[t]} {t}</span>
+            ))}
           </div>
         )}
-        {(model.tags?.includes('zen') || model.tags?.includes('arli') || model.tags?.includes('freetheai') || model.tags?.includes('modal') || model.tags?.includes('groq') || model.tags?.includes('sambanova') || model.tags?.includes('cerebras') || model.tags?.includes('google-ai') || model.tags?.includes('openrouter') || model.tags?.includes('github') || model.tags?.includes('llm7')) && (
-          <div className="model-info-tags">
-            {model.tags?.includes('zen') && <span className="model-tag tag-zen">via OpenCode Zen</span>}
-            {model.tags?.includes('arli') && <span className="model-tag tag-arli">via Arli AI</span>}
-            {model.tags?.includes('freetheai') && <span className="model-tag tag-freetheai">via FreeTheAi</span>}
-            {model.tags?.includes('modal') && <span className="model-tag tag-modal">via Modal</span>}
-            {model.tags?.includes('groq') && <span className="model-tag tag-groq">via Groq</span>}
-            {model.tags?.includes('sambanova') && <span className="model-tag tag-sambanova">via SambaNova</span>}
-            {model.tags?.includes('cerebras') && <span className="model-tag tag-cerebras">via Cerebras</span>}
-            {model.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">via Google AI</span>}
-            {model.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">via OpenRouter</span>}
-            {model.tags?.includes('github') && <span className="model-tag tag-github">via GitHub</span>}
-            {model.tags?.includes('llm7') && <span className="model-tag tag-llm7">via LLM7</span>}
-          </div>
-        )}
+        <div className="model-info-row model-info-id"><span>ID</span><span className="model-id-text">{model.id}</span></div>
       </div>
     </div>
   );
@@ -330,16 +339,6 @@ export default function ChatArea({
     if (!modelGroups[m.provider]) modelGroups[m.provider] = [];
     modelGroups[m.provider].push(m);
   }
-  const PROVIDER_NAMES = {
-    anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', meta: 'Meta',
-    mistralai: 'Mistral', qwen: 'Qwen', 'x-ai': 'xAI', 'deepseek-ai': 'DeepSeek',
-    nvidia: 'NVIDIA', 'z-ai': 'Z.AI', microsoft: 'Microsoft', deepseek: 'DeepSeek',
-    minimax: 'MiniMax', ring: 'Ring', 'arli-ai': 'Arli AI', moonshotai: 'Moonshot',
-    minimaxai: 'MiniMax', 'stepfun-ai': 'StepFun', sarvamai: 'Sarvam',
-    stockmark: 'Stockmark', upstage: 'Upstage',
-  };
-
-  const topProviders = ['anthropic', 'openai', 'google', 'meta', 'mistralai', 'qwen', 'x-ai', 'deepseek-ai', 'nvidia', 'z-ai', 'deepseek', 'minimax', 'ring', 'arli-ai'];
 
   return (
     <main className="chat-area">
@@ -424,66 +423,58 @@ export default function ChatArea({
       <div className="chat-messages" ref={messagesContainerRef}>
         {messages.length === 0 ? (
           <div className="chat-empty">
-            <div className="empty-logo">
-              <div className="empty-logo-icon"><Sparkles size={32} /></div>
+            <div className="empty-hero">
+              <div className="empty-logo">
+                <div className="empty-logo-icon"><Sparkles size={32} /></div>
+              </div>
+              <h1 className="empty-title">What can I help with?</h1>
+              <p className="empty-subtitle">
+                {model
+                  ? `Chat with ${currentModel?.name || model}`
+                  : `${models?.length || '50+'} free models from top AI providers`}
+              </p>
             </div>
-            <h1 className="empty-title">What can I help with?</h1>
-            <p className="empty-subtitle">
-              {model ? `Chat with ${currentModel?.name || model}` : 'Choose a model below to get started'}
-            </p>
+
             {currentModel && (
-              <div className="empty-model-tags">
-                {currentModel.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
-                {currentModel.tags?.includes('zen') && <span className="model-tag tag-zen">via Zen</span>}
-                {currentModel.tags?.includes('arli') && <span className="model-tag tag-arli">via Arli</span>}
-                {currentModel.tags?.includes('freetheai') && <span className="model-tag tag-freetheai">via FreeTheAi</span>}
-                {currentModel.tags?.includes('modal') && <span className="model-tag tag-modal">via Modal</span>}
-                {currentModel.tags?.includes('groq') && <span className="model-tag tag-groq">via Groq</span>}
-                {currentModel.tags?.includes('sambanova') && <span className="model-tag tag-sambanova">via SambaNova</span>}
-                {currentModel.tags?.includes('cerebras') && <span className="model-tag tag-cerebras">via Cerebras</span>}
-                {currentModel.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">via Google AI</span>}
-                {currentModel.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">via OpenRouter</span>}
-                {currentModel.tags?.includes('github') && <span className="model-tag tag-github">via GitHub</span>}
-                {currentModel.tags?.includes('llm7') && <span className="model-tag tag-llm7">via LLM7</span>}
-                {currentModel.speed === 'slow' && <span className="model-tag tag-slow">slow</span>}
-                {currentModel.speed === 'medium' && <span className="model-tag tag-medium">medium</span>}
-                {currentModel.ttk != null && <span className="model-tag tag-speed"><Zap size={8} />{currentModel.ttk < 1 ? '<1s' : `${Math.round(currentModel.ttk)}s`}</span>}
+              <div className="empty-model-badges">
+                {getCapabilities(currentModel.tags).map(t => (
+                  <span key={t} className={`badge badge-${t}`}>{CAPABILITY_ICONS[t]} {t}</span>
+                ))}
+                <SpeedBadge speed={currentModel.speed} ttk={currentModel.ttk} />
               </div>
             )}
 
             {!model ? (
-              <div className="model-cards">
-                {topProviders.filter(p => modelGroups[p]).slice(0, 8).map(provider => (
-                  <div key={provider} className="model-card-group">
-                    <div className="model-card-provider">
-                      {PROVIDER_NAMES[provider] || provider}
-                    </div>
-                    <div className="model-card-list">
-                      {modelGroups[provider].slice(0, 2).map(m => (
-                        <button key={m.id} className="model-card" onClick={() => onModelChange(m.id)}>
-                          <span className="model-card-name">{m.name}</span>
-                          <span className="model-card-tags">
-                            {m.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
-                            {m.tags?.includes('zen') && <span className="model-tag tag-zen">Zen</span>}
-                            {m.tags?.includes('arli') && <span className="model-tag tag-arli">Arli</span>}
-                            {m.tags?.includes('freetheai') && <span className="model-tag tag-freetheai">FreeTheAi</span>}
-                            {m.tags?.includes('modal') && <span className="model-tag tag-modal">Modal</span>}
-                            {m.tags?.includes('groq') && <span className="model-tag tag-groq">Groq</span>}
-                            {m.tags?.includes('sambanova') && <span className="model-tag tag-sambanova">SambaNova</span>}
-                            {m.tags?.includes('cerebras') && <span className="model-tag tag-cerebras">Cerebras</span>}
-                            {m.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">Google</span>}
-                            {m.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">OpenRouter</span>}
-                            {m.tags?.includes('github') && <span className="model-tag tag-github">GitHub</span>}
-                            {m.tags?.includes('llm7') && <span className="model-tag tag-llm7">LLM7</span>}
-                            {m.speed === 'slow' && <span className="model-tag tag-slow">slow</span>}
-                            {m.ttk != null && <span className="model-tag tag-speed"><Zap size={8} />{m.ttk < 1 ? '<1s' : `${Math.round(m.ttk)}s`}</span>}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+              <>
+                <div className="feature-strip">
+                  <span className="feature-item"><Zap size={12} /> Streaming</span>
+                  <span className="feature-item"><Mic size={12} /> Voice</span>
+                  <span className="feature-item"><Code2 size={12} /> Code</span>
+                  <span className="feature-item"><Brain size={12} /> Reasoning</span>
+                </div>
+                <div className="featured-models">
+                  <div className="featured-header">Quick Start — pick a model</div>
+                  <div className="featured-grid">
+                    {models?.filter(m => FEATURED_IDS.includes(m.id)).map(m => (
+                      <button key={m.id} className="featured-card" onClick={() => onModelChange(m.id)}>
+                        <span className="featured-name">{m.name}</span>
+                        <span className="featured-provider">{PROVIDER_DISPLAY[m.provider] || m.provider}</span>
+                        <span className="featured-badges">
+                          {getCapabilities(m.tags).map(t => (
+                            <span key={t} className={`badge badge-${t}`}>{CAPABILITY_ICONS[t]}</span>
+                          ))}
+                          <SpeedBadge speed={m.speed} ttk={m.ttk} />
+                        </span>
+                      </button>
+                    ))}
+                    {models && models.filter(m => FEATURED_IDS.includes(m.id)).length === 0 && (
+                      <div className="featured-empty">
+                        Use the model selector above to choose a model
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                </div>
+              </>
             ) : (
               <div className="empty-suggestions">
                 {SUGGESTIONS.map((s, i) => (
