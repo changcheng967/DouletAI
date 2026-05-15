@@ -58,9 +58,18 @@ function getProvider(model) {
 }
 
 export async function POST(req) {
-  const { model, messages, max_tokens = 2048, temperature = 0.6, thinking = false } = await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch (e) {
+    console.error('Failed to parse request body:', e);
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const { model, messages, max_tokens = 2048, temperature = 0.6, thinking = false } = body;
 
   if (!model || !messages || !Array.isArray(messages)) {
+    console.error('Missing required fields:', { model: !!model, messages: !!messages, isArray: Array.isArray(messages) });
     return NextResponse.json({ error: 'model and messages are required' }, { status: 400 });
   }
 
