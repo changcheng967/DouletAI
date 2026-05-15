@@ -66,12 +66,12 @@ function ModelInfoPopup({ model, onClose }) {
         <div className="model-info-row"><span>Provider</span><span>{PROVIDER_NAMES[model.provider] || model.provider}</span></div>
         {model.context_length && <div className="model-info-row"><span>Context</span><span>{(model.context_length/1000).toFixed(0)}K tokens</span></div>}
         <div className="model-info-row"><span>Speed</span><span className={`speed-badge speed-${model.speed}`}>{model.speed}</span></div>
-        {model.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).length > 0 && (
+        {model.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).length > 0 && (
           <div className="model-info-tags">
-            {model.tags.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
+            {model.tags.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
           </div>
         )}
-        {(model.tags?.includes('zen') || model.tags?.includes('arli') || model.tags?.includes('freetheai') || model.tags?.includes('modal') || model.tags?.includes('groq') || model.tags?.includes('sambanova') || model.tags?.includes('cerebras') || model.tags?.includes('google-ai') || model.tags?.includes('openrouter') || model.tags?.includes('github')) && (
+        {(model.tags?.includes('zen') || model.tags?.includes('arli') || model.tags?.includes('freetheai') || model.tags?.includes('modal') || model.tags?.includes('groq') || model.tags?.includes('sambanova') || model.tags?.includes('cerebras') || model.tags?.includes('google-ai') || model.tags?.includes('openrouter') || model.tags?.includes('github') || model.tags?.includes('llm7')) && (
           <div className="model-info-tags">
             {model.tags?.includes('zen') && <span className="model-tag tag-zen">via OpenCode Zen</span>}
             {model.tags?.includes('arli') && <span className="model-tag tag-arli">via Arli AI</span>}
@@ -83,6 +83,7 @@ function ModelInfoPopup({ model, onClose }) {
             {model.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">via Google AI</span>}
             {model.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">via OpenRouter</span>}
             {model.tags?.includes('github') && <span className="model-tag tag-github">via GitHub</span>}
+            {model.tags?.includes('llm7') && <span className="model-tag tag-llm7">via LLM7</span>}
           </div>
         )}
       </div>
@@ -432,7 +433,7 @@ export default function ChatArea({
             </p>
             {currentModel && (
               <div className="empty-model-tags">
-                {currentModel.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
+                {currentModel.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
                 {currentModel.tags?.includes('zen') && <span className="model-tag tag-zen">via Zen</span>}
                 {currentModel.tags?.includes('arli') && <span className="model-tag tag-arli">via Arli</span>}
                 {currentModel.tags?.includes('freetheai') && <span className="model-tag tag-freetheai">via FreeTheAi</span>}
@@ -443,6 +444,7 @@ export default function ChatArea({
                 {currentModel.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">via Google AI</span>}
                 {currentModel.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">via OpenRouter</span>}
                 {currentModel.tags?.includes('github') && <span className="model-tag tag-github">via GitHub</span>}
+                {currentModel.tags?.includes('llm7') && <span className="model-tag tag-llm7">via LLM7</span>}
                 {currentModel.speed === 'slow' && <span className="model-tag tag-slow">slow</span>}
                 {currentModel.speed === 'medium' && <span className="model-tag tag-medium">medium</span>}
                 {currentModel.ttk != null && <span className="model-tag tag-speed"><Zap size={8} />{currentModel.ttk < 1 ? '<1s' : `${Math.round(currentModel.ttk)}s`}</span>}
@@ -461,7 +463,7 @@ export default function ChatArea({
                         <button key={m.id} className="model-card" onClick={() => onModelChange(m.id)}>
                           <span className="model-card-name">{m.name}</span>
                           <span className="model-card-tags">
-                            {m.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
+                            {m.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
                             {m.tags?.includes('zen') && <span className="model-tag tag-zen">Zen</span>}
                             {m.tags?.includes('arli') && <span className="model-tag tag-arli">Arli</span>}
                             {m.tags?.includes('freetheai') && <span className="model-tag tag-freetheai">FreeTheAi</span>}
@@ -472,6 +474,7 @@ export default function ChatArea({
                             {m.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">Google</span>}
                             {m.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">OpenRouter</span>}
                             {m.tags?.includes('github') && <span className="model-tag tag-github">GitHub</span>}
+                            {m.tags?.includes('llm7') && <span className="model-tag tag-llm7">LLM7</span>}
                             {m.speed === 'slow' && <span className="model-tag tag-slow">slow</span>}
                             {m.ttk != null && <span className="model-tag tag-speed"><Zap size={8} />{m.ttk < 1 ? '<1s' : `${Math.round(m.ttk)}s`}</span>}
                           </span>

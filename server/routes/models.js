@@ -13,6 +13,7 @@ const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY;
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const LLM7_API_KEY = process.env.LLM7_API_KEY;
 
 let modelsCache = null;
 let cacheTime = 0;
@@ -77,6 +78,11 @@ const EXTERNAL_MODELS = {
     'github/o4-mini': { name: 'O4 Mini', provider: 'openai', tags: ['github', 'reasoning'], speed: 'fast' },
     'github/llama-4-scout-17b-16e-instruct': { name: 'Llama 4 Scout 17B', provider: 'meta', tags: ['github'], speed: 'fast' },
     'github/deepseek-r1': { name: 'DeepSeek R1', provider: 'deepseek', tags: ['github', 'reasoning'], speed: 'fast' },
+  } : {}),
+  ...(LLM7_API_KEY ? {
+    'llm7/gpt-oss-20b': { name: 'GPT-OSS 20B', provider: 'openai', tags: ['llm7'], speed: 'fast' },
+    'llm7/codestral-latest': { name: 'Codestral', provider: 'mistralai', tags: ['llm7', 'coding'], speed: 'fast' },
+    'llm7/glm-4.6v-flash': { name: 'GLM 4.6V Flash', provider: 'z-ai', tags: ['llm7', 'vision'], speed: 'fast' },
   } : {}),
 };
 

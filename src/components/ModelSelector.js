@@ -74,7 +74,7 @@ export default function ModelSelector({ value, onChange }) {
           {selectedModel?.ttk && <span className="model-tag tag-speed"><Zap size={8} />{selectedModel.ttk < 1 ? '<1s' : `${Math.round(selectedModel.ttk)}s`}</span>}
           {selectedModel?.tags?.length > 0 && (
             <span className="model-tags-inline">
-              {selectedModel.tags.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => (
+              {selectedModel.tags.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).map(t => (
                 <span key={t} className={`model-tag tag-${t}`}>{TAG_ICONS[t]} {t}</span>
               ))}
               {selectedModel.tags.includes('zen') && <span className="model-tag tag-zen">via Zen</span>}
@@ -87,6 +87,7 @@ export default function ModelSelector({ value, onChange }) {
               {selectedModel.tags.includes('google-ai') && <span className="model-tag tag-google-ai">via Google</span>}
               {selectedModel.tags.includes('openrouter') && <span className="model-tag tag-openrouter">via OpenRouter</span>}
               {selectedModel.tags.includes('github') && <span className="model-tag tag-github">via GitHub</span>}
+              {selectedModel.tags.includes('llm7') && <span className="model-tag tag-llm7">via LLM7</span>}
             </span>
           )}
         </span>
@@ -124,7 +125,7 @@ export default function ModelSelector({ value, onChange }) {
                       {m.speed === 'slow' && <span className="model-tag tag-slow"><Clock size={9} /></span>}
                       {m.speed === 'medium' && <span className="model-tag tag-medium"><Clock size={9} /></span>}
                       {m.ttk && <span className="model-tag tag-speed"><Zap size={8} />{m.ttk < 1 ? '<1s' : `${Math.round(m.ttk)}s`}</span>}
-                      {m.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => (
+                      {m.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github','llm7'].includes(t)).map(t => (
                         <span key={t} className={`model-tag tag-${t}`}>{TAG_ICONS[t]}</span>
                       ))}
                       {m.tags?.includes('zen') && <span className="model-tag tag-zen">Zen</span>}
@@ -137,6 +138,7 @@ export default function ModelSelector({ value, onChange }) {
                       {m.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">Google</span>}
                       {m.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">OpenRouter</span>}
                       {m.tags?.includes('github') && <span className="model-tag tag-github">GitHub</span>}
+                      {m.tags?.includes('llm7') && <span className="model-tag tag-llm7">LLM7</span>}
                     </span>
                   </button>
                 ))}

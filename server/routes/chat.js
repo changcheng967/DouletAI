@@ -35,6 +35,7 @@ function getProvider(model) {
     google: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey: process.env.GOOGLE_API_KEY },
     openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKey: process.env.OPENROUTER_API_KEY },
     github: { baseUrl: 'https://models.inference.ai.azure.com', apiKey: process.env.GITHUB_TOKEN },
+    llm7: { baseUrl: 'https://api.llm7.io/v1', apiKey: process.env.LLM7_API_KEY },
   };
 
   const prefix = model.split('/')[0];
