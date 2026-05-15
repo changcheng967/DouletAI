@@ -12,6 +12,11 @@ function CodeBlock({ children, className }) {
   const match = /language-(\w+)/.exec(className || '');
   const code = String(children).replace(/\n$/, '');
 
+  // Skip single-line "code" that's actually just a short phrase
+  if (!className && !code.includes('\n') && code.length < 60 && !code.includes('  ')) {
+    return <code className="inline-code">{children}</code>;
+  }
+
   const copy = () => {
     navigator.clipboard.writeText(code);
     setCopied(true);
@@ -56,6 +61,7 @@ function ThinkingSection({ content }) {
 
 function MessageMeta({ duration, usage, isStreaming, timestamp, ttk }) {
   const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+  const tokensPerSec = usage?.completion_tokens && duration ? (usage.completion_tokens / parseFloat(duration)).toFixed(1) : null;
 
   return (
     <div className="message-meta">
@@ -69,9 +75,9 @@ function MessageMeta({ duration, usage, isStreaming, timestamp, ttk }) {
           {timeStr}
         </span>
       )}
-      {ttk && (
-        <span className="message-meta-item meta-ttk" title="Time to first token">
-          <Timer size={12} /> {ttk}s TTK
+      {tokensPerSec && (
+        <span className="message-meta-item meta-ttk" title="Output speed (tokens/sec)">
+          <Zap size={12} /> {tokensPerSec} tok/s
         </span>
       )}
       {duration && (
@@ -81,7 +87,7 @@ function MessageMeta({ duration, usage, isStreaming, timestamp, ttk }) {
       )}
       {usage?.prompt_tokens != null && (
         <span className="message-meta-item">
-          <Zap size={12} /> {usage.prompt_tokens + (usage.completion_tokens || 0)} tokens
+          {usage.prompt_tokens + (usage.completion_tokens || 0)} tokens
         </span>
       )}
       {usage?.completion_tokens != null && usage.prompt_tokens != null && (
@@ -125,15 +131,16 @@ export default function MessageBubble({ message, isStreaming, onRegenerate, onEd
                   rehypePlugins={[rehypeHighlight]}
                   components={{
                     pre: ({ children }) => <>{children}</>,
-                    code: ({ className, children, ...props }) => {
-                      // Detect inline vs block: block code has className (language-xxx) or contains newlines
-                      const isInline = !className && !String(children).includes('\n');
+                    code: ({ className, children, node, ...props }) => {
+                      const text = String(children);
+                      const isInline = !className && !text.includes('\n');
                       if (isInline) return <code className="inline-code" {...props}>{children}</code>;
                       return <CodeBlock className={className}>{children}</CodeBlock>;
                     },
                     table: ({ children }) => (
                       <div className="table-wrapper"><table>{children}</table></div>
                     ),
+                    p: ({ children }) => <p>{children}</p>,
                   }}
                 >
                   {message.content}

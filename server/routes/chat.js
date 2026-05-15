@@ -118,7 +118,7 @@ router.post('/', async (req, res) => {
       let errorMsg;
       try {
         const errData = JSON.parse(await response.text());
-        errorMsg = errData.detail || errData.error || errData.message || JSON.stringify(errData);
+        errorMsg = errData.detail || (typeof errData.error === 'string' ? errData.error : errData.error?.message) || errData.message || JSON.stringify(errData);
       } catch {
         errorMsg = `HTTP ${response.status}`;
       }

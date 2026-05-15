@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Search, Eye, Brain, Code2, Clock, Zap, ZapOff } from 'lucide-react';
+import { ChevronDown, Search, Eye, Brain, Code2, Clock, Zap, ZapOff, Timer } from 'lucide-react';
 import { fetchModels } from '@/lib/api';
 
 const PROVIDER_NAMES = {
@@ -70,6 +70,8 @@ export default function ModelSelector({ value, onChange }) {
         <span className="model-selector-value">
           {displayName}
           {selectedModel?.speed === 'slow' && <span className="model-tag tag-slow"><Clock size={9} /> slow</span>}
+          {selectedModel?.speed === 'medium' && <span className="model-tag tag-medium"><Clock size={9} /> med</span>}
+          {selectedModel?.ttk && <span className="model-tag tag-speed"><Zap size={8} />{selectedModel.ttk < 1 ? '<1s' : `${Math.round(selectedModel.ttk)}s`}</span>}
           {selectedModel?.tags?.length > 0 && (
             <span className="model-tags-inline">
               {selectedModel.tags.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => (
@@ -120,6 +122,8 @@ export default function ModelSelector({ value, onChange }) {
                     <span className="model-item-name">{m.name}</span>
                     <span className="model-item-tags">
                       {m.speed === 'slow' && <span className="model-tag tag-slow"><Clock size={9} /></span>}
+                      {m.speed === 'medium' && <span className="model-tag tag-medium"><Clock size={9} /></span>}
+                      {m.ttk && <span className="model-tag tag-speed"><Zap size={8} />{m.ttk < 1 ? '<1s' : `${Math.round(m.ttk)}s`}</span>}
                       {m.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => (
                         <span key={t} className={`model-tag tag-${t}`}>{TAG_ICONS[t]}</span>
                       ))}
