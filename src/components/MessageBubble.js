@@ -61,7 +61,7 @@ function ThinkingSection({ content }) {
 
 function MessageMeta({ duration, usage, isStreaming, timestamp, ttk }) {
   const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
-  const tokensPerSec = usage?.completion_tokens && duration ? (usage.completion_tokens / parseFloat(duration)).toFixed(1) : null;
+  const tokensPerSec = usage?.completion_tokens && duration && parseFloat(duration) > 0 ? (usage.completion_tokens / parseFloat(duration)).toFixed(1) : null;
 
   return (
     <div className="message-meta">

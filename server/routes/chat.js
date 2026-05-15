@@ -7,18 +7,9 @@ const MODEL_ID_MAP = {
   'arliai/qwen-3.5-27b': '(TRIAL) Qwen3.5-27B-BlueStar-Derestricted',
   'arliai/glm-4.7': '(TRIAL) GLM-4.7',
   'arliai/gemma-4-31b': '(TRIAL) Gemma-4-31B-it',
-  'arliai/mistral-medium-3.5': '(TRIAL) Mistral-Medium-3.5-128B',
   // FreeTheAi (API uses prefixed IDs — yng/ is most reliable)
   'freetheai/claude-opus-4.7': 'yng/claude-opus-4-7',
-  'freetheai/claude-4.6-sonnet': 'yng/claude-4-6-sonnet',
-  'freetheai/claude-4.5-haiku': 'yng/claude-4-5-haiku',
-  'freetheai/gemini-3.1-pro': 'yng/gemini-3-1-pro',
   'freetheai/gemini-3-flash': 'yng/gemini-3-flash',
-  'freetheai/gpt-5.5': 'yng/gpt-5.5',
-  'freetheai/gpt-5.1': 'yng/gpt-5.1',
-  'freetheai/grok-4.1-fast': 'bbl/grok-4.1-fast-non-reasoning',
-  // Modal (actual API model ID)
-  'modal/glm-5.1': 'zai-org/GLM-5.1-FP8',
   // OpenRouter (uses full model paths with :free suffix)
   'openrouter/deepseek-r1:free': 'deepseek/deepseek-r1:free',
   'openrouter/qwen3-coder:free': 'qwen/qwen3-coder:free',
@@ -38,7 +29,6 @@ function getProvider(model) {
     zen: { baseUrl: process.env.ZEN_BASE_URL || 'https://opencode.ai/zen/v1', apiKey: process.env.ZEN_API_KEY },
     arliai: { baseUrl: process.env.ARLIAI_BASE_URL || 'https://api.arliai.com/v1', apiKey: process.env.ARLIAI_API_KEY },
     freetheai: { baseUrl: process.env.FREETHEAI_BASE_URL || 'https://api.freetheai.xyz/v1', apiKey: process.env.FREETHEAI_API_KEY },
-    modal: { baseUrl: process.env.MODAL_BASE_URL || 'https://api.us-west-2.modal.direct/v1', apiKey: process.env.MODAL_API_KEY },
     groq: { baseUrl: 'https://api.groq.com/openai/v1', apiKey: process.env.GROQ_API_KEY },
     sambanova: { baseUrl: 'https://api.sambanova.ai/v1', apiKey: process.env.SAMBANOVA_API_KEY },
     cerebras: { baseUrl: 'https://api.cerebras.ai/v1', apiKey: process.env.CEREBRAS_API_KEY },

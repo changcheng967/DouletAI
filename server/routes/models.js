@@ -134,21 +134,25 @@ function buildModelList() {
     if (seen.has(id)) continue;
     seen.add(id);
     const parts = id.split('/');
-    models.push({
+    const entry = {
       id, provider: parts[0], name: info.name || parts.slice(1).join('/') || id,
       owned_by: parts[0], context_length: null,
       tags: info.tags || [], speed: info.speed || 'fast',
-    });
+    };
+    if (info.ttk != null) entry.ttk = info.ttk;
+    models.push(entry);
   }
 
   for (const [id, info] of Object.entries(EXTERNAL_MODELS)) {
     if (seen.has(id)) continue;
     seen.add(id);
-    models.push({
+    const entry = {
       id, provider: info.provider, name: info.name,
       owned_by: id.split('/')[0], context_length: null,
       tags: info.tags || [], speed: info.speed || 'fast',
-    });
+    };
+    if (info.ttk != null) entry.ttk = info.ttk;
+    models.push(entry);
   }
 
   const providerOrder = {

@@ -1365,6 +1365,7 @@ a { color: var(--accent); text-decoration: none; }
 .speed-fast { background: rgba(16,163,127,0.12); color: var(--accent); }
 .speed-medium { background: rgba(59,130,246,0.12); color: #60a5fa; }
 .speed-slow { background: rgba(251,146,60,0.12); color: #fb923c; }
+.model-slow { opacity: 0.75; }
 
 .model-info-tags { display: flex; gap: 3px; margin-top: 6px; }
 .model-info-btn { margin-right: -4px; }

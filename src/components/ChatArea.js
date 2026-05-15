@@ -166,7 +166,7 @@ export default function ChatArea({
   }, 0);
 
   useEffect(() => {
-    if (currentModel?.thinking) setEnableThinking(true);
+    if (currentModel?.tags?.includes('reasoning')) setEnableThinking(true);
   }, [currentModel?.id]);
 
   useEffect(() => {
@@ -430,20 +430,22 @@ export default function ChatArea({
             <p className="empty-subtitle">
               {model ? `Chat with ${currentModel?.name || model}` : 'Choose a model below to get started'}
             </p>
-            {currentModel?.tags?.length > 0 && (
+            {currentModel && (
               <div className="empty-model-tags">
-                {currentModel.tags.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
-                {currentModel.tags.includes('zen') && <span className="model-tag tag-zen">via Zen</span>}
-                {currentModel.tags.includes('arli') && <span className="model-tag tag-arli">via Arli</span>}
-                {currentModel.tags.includes('freetheai') && <span className="model-tag tag-freetheai">via FreeTheAi</span>}
-                {currentModel.tags.includes('modal') && <span className="model-tag tag-modal">via Modal</span>}
-                {currentModel.tags.includes('groq') && <span className="model-tag tag-groq">via Groq</span>}
-                {currentModel.tags.includes('sambanova') && <span className="model-tag tag-sambanova">via SambaNova</span>}
-                {currentModel.tags.includes('cerebras') && <span className="model-tag tag-cerebras">via Cerebras</span>}
-                {currentModel.tags.includes('google-ai') && <span className="model-tag tag-google-ai">via Google AI</span>}
-                {currentModel.tags.includes('openrouter') && <span className="model-tag tag-openrouter">via OpenRouter</span>}
-                {currentModel.tags.includes('github') && <span className="model-tag tag-github">via GitHub</span>}
+                {currentModel.tags?.filter(t => !['zen','arli','freetheai','modal','groq','sambanova','cerebras','google-ai','openrouter','github'].includes(t)).map(t => <span key={t} className={`model-tag tag-${t}`}>{t}</span>)}
+                {currentModel.tags?.includes('zen') && <span className="model-tag tag-zen">via Zen</span>}
+                {currentModel.tags?.includes('arli') && <span className="model-tag tag-arli">via Arli</span>}
+                {currentModel.tags?.includes('freetheai') && <span className="model-tag tag-freetheai">via FreeTheAi</span>}
+                {currentModel.tags?.includes('modal') && <span className="model-tag tag-modal">via Modal</span>}
+                {currentModel.tags?.includes('groq') && <span className="model-tag tag-groq">via Groq</span>}
+                {currentModel.tags?.includes('sambanova') && <span className="model-tag tag-sambanova">via SambaNova</span>}
+                {currentModel.tags?.includes('cerebras') && <span className="model-tag tag-cerebras">via Cerebras</span>}
+                {currentModel.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">via Google AI</span>}
+                {currentModel.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">via OpenRouter</span>}
+                {currentModel.tags?.includes('github') && <span className="model-tag tag-github">via GitHub</span>}
                 {currentModel.speed === 'slow' && <span className="model-tag tag-slow">slow</span>}
+                {currentModel.speed === 'medium' && <span className="model-tag tag-medium">medium</span>}
+                {currentModel.ttk != null && <span className="model-tag tag-speed"><Zap size={8} />{currentModel.ttk < 1 ? '<1s' : `${Math.round(currentModel.ttk)}s`}</span>}
               </div>
             )}
 
@@ -470,6 +472,8 @@ export default function ChatArea({
                             {m.tags?.includes('google-ai') && <span className="model-tag tag-google-ai">Google</span>}
                             {m.tags?.includes('openrouter') && <span className="model-tag tag-openrouter">OpenRouter</span>}
                             {m.tags?.includes('github') && <span className="model-tag tag-github">GitHub</span>}
+                            {m.speed === 'slow' && <span className="model-tag tag-slow">slow</span>}
+                            {m.ttk != null && <span className="model-tag tag-speed"><Zap size={8} />{m.ttk < 1 ? '<1s' : `${Math.round(m.ttk)}s`}</span>}
                           </span>
                         </button>
                       ))}
