@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from './Toast';
 
 function CodeBlock({ children, className }) {
@@ -12,7 +12,6 @@ function CodeBlock({ children, className }) {
   const match = /language-(\w+)/.exec(className || '');
   const code = String(children).replace(/\n$/, '');
 
-  // Skip single-line "code" that's actually just a short phrase
   if (!className && !code.includes('\n') && code.length < 60 && !code.includes('  ')) {
     return <code className="inline-code">{children}</code>;
   }
@@ -59,9 +58,39 @@ function ThinkingSection({ content }) {
   );
 }
 
-function MessageMeta({ duration, usage, isStreaming, timestamp, ttk }) {
+function MessageMeta({ duration, usage, isStreaming, timestamp, ttk, contentLength }) {
   const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
-  const tokensPerSec = usage?.completion_tokens && duration && parseFloat(duration) > 0 ? (usage.completion_tokens / parseFloat(duration)).toFixed(1) : null;
+  const tokensPerSec = usage?.completion_tokens && duration && parseFloat(duration) > 0
+    ? (usage.completion_tokens / parseFloat(duration)).toFixed(1)
+    : null;
+
+  // Live tokens/sec estimation during streaming
+  const [liveTps, setLiveTps] = useState(null);
+  const startRef = useRef(null);
+  const contentRef = useRef(0);
+
+  useEffect(() => {
+    contentRef.current = contentLength || 0;
+  }, [contentLength]);
+
+  useEffect(() => {
+    if (isStreaming) {
+      if (!startRef.current) startRef.current = Date.now();
+      const interval = setInterval(() => {
+        const elapsed = (Date.now() - startRef.current) / 1000;
+        if (elapsed > 1 && contentRef.current > 20) {
+          const estTokens = Math.round(contentRef.current / 4);
+          setLiveTps((estTokens / elapsed).toFixed(1));
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    } else {
+      startRef.current = null;
+      setLiveTps(null);
+    }
+  }, [isStreaming]);
+
+  const displayTps = tokensPerSec || liveTps;
 
   return (
     <div className="message-meta">
@@ -70,27 +99,27 @@ function MessageMeta({ duration, usage, isStreaming, timestamp, ttk }) {
           <span className="pulse-dot" /> Generating...
         </span>
       )}
+      {displayTps && (
+        <span className="message-meta-item meta-ttk" title="Output speed (tokens/sec)">
+          <Zap size={12} /> {displayTps} tok/s
+        </span>
+      )}
       {timeStr && (
         <span className="message-meta-item meta-time">
           {timeStr}
         </span>
       )}
-      {tokensPerSec && (
-        <span className="message-meta-item meta-ttk" title="Output speed (tokens/sec)">
-          <Zap size={12} /> {tokensPerSec} tok/s
-        </span>
-      )}
-      {duration && (
+      {duration && !isStreaming && (
         <span className="message-meta-item">
           <Clock size={12} /> {duration}s
         </span>
       )}
-      {usage?.prompt_tokens != null && (
+      {usage?.prompt_tokens != null && !isStreaming && (
         <span className="message-meta-item">
           {usage.prompt_tokens + (usage.completion_tokens || 0)} tokens
         </span>
       )}
-      {usage?.completion_tokens != null && usage.prompt_tokens != null && (
+      {usage?.completion_tokens != null && usage.prompt_tokens != null && !isStreaming && (
         <span className="message-meta-item meta-detail">
           in: {usage.prompt_tokens} / out: {usage.completion_tokens}
         </span>
@@ -159,6 +188,7 @@ export default function MessageBubble({ message, isStreaming, onRegenerate, onEd
               isStreaming={isStreaming}
               timestamp={message.timestamp}
               ttk={message.ttk}
+              contentLength={message.content?.length || 0}
             />
             {!isStreaming && (
               <div className="message-action-buttons">
