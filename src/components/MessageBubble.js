@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { useToast } from './Toast';
 
 function CodeBlock({ children, className }) {
@@ -37,8 +37,8 @@ function CodeBlock({ children, className }) {
   );
 }
 
-function ThinkingSection({ content }) {
-  const [open, setOpen] = useState(true);
+function ThinkingSection({ content, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   const wordCount = content.split(/\s+/).length;
 
   return (
@@ -128,7 +128,7 @@ function MessageMeta({ duration, usage, isStreaming, timestamp, ttk, contentLeng
   );
 }
 
-export default function MessageBubble({ message, isStreaming, onRegenerate, onEdit, onBranch }) {
+export default memo(function MessageBubble({ message, isStreaming, onRegenerate, onEdit, onBranch }) {
   const [copiedMsg, setCopiedMsg] = useState(false);
   const toast = useToast();
   const isUser = message.role === 'user';
@@ -152,7 +152,7 @@ export default function MessageBubble({ message, isStreaming, onRegenerate, onEd
           ) : (
             <>
               {message.thinking && (
-                <ThinkingSection content={message.thinking} />
+                <ThinkingSection content={message.thinking} defaultOpen={isStreaming} />
               )}
               <div className={isStreaming && !message.content ? 'streaming-cursor' : ''}>
                 <ReactMarkdown
@@ -227,4 +227,4 @@ export default function MessageBubble({ message, isStreaming, onRegenerate, onEd
       </div>
     </div>
   );
-}
+});

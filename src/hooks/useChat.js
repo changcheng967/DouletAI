@@ -13,6 +13,9 @@ export function useChat(onMessagesUpdate) {
   const abortRef = useRef(null);
 
   const send = useCallback(async (messages, model, enableThinking = false, options = {}) => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setError(null);
     setStreaming(true);
     setThinkingActive(false);
@@ -41,6 +44,7 @@ export function useChat(onMessagesUpdate) {
       thinking: enableThinking,
       max_tokens: options.maxTokens,
       temperature: options.temperature,
+      signal: controller.signal,
       onThinking: (text) => {
         if (!gotFirstToken) {
           gotFirstToken = true;
@@ -97,6 +101,7 @@ export function useChat(onMessagesUpdate) {
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
+    abortRef.current = null;
     setStreaming(false);
     setThinkingActive(false);
     setWaitingForFirst(false);

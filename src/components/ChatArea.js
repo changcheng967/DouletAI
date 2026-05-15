@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Menu, Send, Square, Sparkles, Brain, Lightbulb, Code2, BookOpen, ArrowDown, MessageSquarePlus, Settings2, Pencil, X as XIcon, Eye, Mic, MicOff, Keyboard, Share2, GitBranch, Timer, Thermometer, Hash, Zap, Clock } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import ModelSelector from './ModelSelector';
@@ -170,10 +170,10 @@ export default function ChatArea({
   const currentModel = models?.find(m => m.id === model);
   const charCount = input.length;
 
-  const totalTokens = messages.reduce((sum, m) => {
+  const totalTokens = useMemo(() => messages.reduce((sum, m) => {
     if (m.usage) return sum + (m.usage.prompt_tokens || 0) + (m.usage.completion_tokens || 0);
     return sum;
-  }, 0);
+  }, 0), [messages]);
 
   useEffect(() => {
     if (currentModel?.tags?.includes('reasoning')) setEnableThinking(true);
@@ -334,11 +334,6 @@ export default function ChatArea({
 
   const lastAssistantIdx = [...messages].map((m, i) => m.role === 'assistant' ? i : -1).filter(i => i >= 0).pop();
 
-  const modelGroups = {};
-  for (const m of (models || [])) {
-    if (!modelGroups[m.provider]) modelGroups[m.provider] = [];
-    modelGroups[m.provider].push(m);
-  }
 
   return (
     <main className="chat-area">
@@ -346,7 +341,7 @@ export default function ChatArea({
         <button className="icon-btn menu-btn" onClick={onOpenSidebar}>
           <Menu size={20} />
         </button>
-        <ModelSelector value={model} onChange={onModelChange} />
+        <ModelSelector value={model} onChange={onModelChange} models={models} />
         {currentModel && (
           <button className="icon-btn model-info-btn" onClick={() => setShowModelInfo(!showModelInfo)} title="Model info">
             <Eye size={16} />

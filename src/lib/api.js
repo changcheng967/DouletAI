@@ -8,7 +8,7 @@ export async function fetchModels() {
   return res.json();
 }
 
-export async function streamChat({ model, messages, thinking, max_tokens, temperature, onChunk, onThinking, onUsage, onDone, onError }) {
+export async function streamChat({ model, messages, thinking, max_tokens, temperature, onChunk, onThinking, onUsage, onDone, onError, signal }) {
   try {
     const body = { model, messages, stream: true, thinking };
     if (max_tokens) body.max_tokens = max_tokens;
@@ -18,6 +18,7 @@ export async function streamChat({ model, messages, thinking, max_tokens, temper
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal,
     });
 
     if (!res.ok) {
@@ -97,6 +98,7 @@ export async function streamChat({ model, messages, thinking, max_tokens, temper
 
     onDone();
   } catch (err) {
+    if (err.name === 'AbortError') return;
     onError(err.message || 'Stream failed');
   }
 }

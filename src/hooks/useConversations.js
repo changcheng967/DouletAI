@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 const STORAGE_KEY = 'douletai_conversations';
 
@@ -13,14 +13,11 @@ function loadConversations() {
   }
 }
 
-function saveConversations(conversations) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-}
-
 export function useConversations() {
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
+  const saveTimerRef = useRef(null);
+  const latestRef = useRef(null);
 
   useEffect(() => {
     const stored = loadConversations();
@@ -28,16 +25,32 @@ export function useConversations() {
     if (stored.length > 0) setActiveId(stored[0].id);
   }, []);
 
-  const active = conversations.find(c => c.id === activeId) || null;
-
   const save = useCallback((updated) => {
+    latestRef.current = updated;
     setConversations(updated);
-    saveConversations(updated);
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      if (latestRef.current && typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(latestRef.current));
+      }
+    }, 300);
   }, []);
+
+  // Flush pending saves on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(saveTimerRef.current);
+      if (latestRef.current && typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(latestRef.current));
+      }
+    };
+  }, []);
+
+  const active = conversations.find(c => c.id === activeId) || null;
 
   const create = useCallback((model = '', systemPrompt = '', initialMessages = []) => {
     const conv = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: initialMessages.length > 0 ? '' : 'New Chat',
       model,
       systemPrompt,
@@ -45,7 +58,6 @@ export function useConversations() {
       createdAt: Date.now(),
       pinned: false,
     };
-    // Auto-title from first user message if present
     if (initialMessages.length > 0) {
       const firstUser = initialMessages.find(m => m.role === 'user');
       if (firstUser) {
@@ -82,7 +94,6 @@ export function useConversations() {
     const updated = conversations.map(c =>
       c.id === id ? { ...c, pinned: !c.pinned } : c
     );
-    // Sort: pinned first, then by creation date
     updated.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;

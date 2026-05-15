@@ -1,7 +1,6 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronDown, Search, Eye, Brain, Code2, Clock, Zap } from 'lucide-react';
-import { fetchModels } from '@/lib/api';
 
 const PROVIDER_NAMES = {
   anthropic: 'Anthropic', openai: 'OpenAI', google: 'Google', meta: 'Meta',
@@ -31,21 +30,10 @@ function SpeedBadge({ speed, ttk }) {
   return null;
 }
 
-export default function ModelSelector({ value, onChange }) {
-  const [models, setModels] = useState(null);
-  const [grouped, setGrouped] = useState({});
+export default function ModelSelector({ value, onChange, models }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
-
-  useEffect(() => {
-    fetchModels()
-      .then(data => {
-        setModels(data.models || []);
-        setGrouped(data.grouped || {});
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     function handleClick(e) {
@@ -54,6 +42,15 @@ export default function ModelSelector({ value, onChange }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  const grouped = useMemo(() => {
+    const g = {};
+    for (const m of (models || [])) {
+      if (!g[m.provider]) g[m.provider] = [];
+      g[m.provider].push(m);
+    }
+    return g;
+  }, [models]);
 
   const selectedModel = models?.find(m => m.id === value);
   const displayName = selectedModel
@@ -131,7 +128,7 @@ export default function ModelSelector({ value, onChange }) {
                 ))}
               </div>
             ))}
-            {models === null && <div className="model-selector-loading">Loading models...</div>}
+            {!models && <div className="model-selector-loading">Loading models...</div>}
             {models?.length === 0 && <div className="model-selector-loading">No models available</div>}
           </div>
         </div>
