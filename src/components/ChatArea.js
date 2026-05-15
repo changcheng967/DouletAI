@@ -75,10 +75,10 @@ function KeyboardShortcuts({ onClose }) {
   );
 }
 
-function ModelInfoPopup({ model, onClose }) {
+function ModelInfoPopup({ model, onClose, containerRef }) {
   if (!model) return null;
   return (
-    <div className="model-info-popup">
+    <div className="model-info-popup" ref={containerRef}>
       <div className="model-info-header">
         <span className="model-info-name">{model.name}</span>
         <button className="icon-btn" onClick={onClose}><XIcon size={14} /></button>
@@ -163,6 +163,22 @@ export default function ChatArea({
   const messagesContainerRef = useRef(null);
   const recognitionRef = useRef(null);
   const ttkTimerRef = useRef(null);
+  const modelInfoRef = useRef(null);
+  const settingsRef = useRef(null);
+
+  // Click outside to dismiss popups
+  useEffect(() => {
+    function handleClick(e) {
+      if (showModelInfo && modelInfoRef.current && !modelInfoRef.current.contains(e.target)) {
+        setShowModelInfo(false);
+      }
+      if (showSettings && settingsRef.current && !settingsRef.current.contains(e.target)) {
+        setShowSettings(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showModelInfo, showSettings]);
 
   const messages = conversation?.messages || [];
   const model = conversation?.model || '';
@@ -347,7 +363,7 @@ export default function ChatArea({
             <Eye size={16} />
           </button>
         )}
-        {showModelInfo && <ModelInfoPopup model={currentModel} onClose={() => setShowModelInfo(false)} />}
+        {showModelInfo && <ModelInfoPopup model={currentModel} onClose={() => setShowModelInfo(false)} containerRef={modelInfoRef} />}
         <div className="header-right">
           {model && (
             <button
@@ -387,7 +403,7 @@ export default function ChatArea({
       {showShortcuts && <KeyboardShortcuts onClose={() => setShowShortcuts(false)} />}
 
       {showSettings && (
-        <div className="settings-bar">
+        <div className="settings-bar" ref={settingsRef}>
           <div className="settings-item">
             <label><Thermometer size={12} /> Temp</label>
             <input type="range" min="0" max="2" step="0.1" value={temperature} onChange={e => setTemperature(parseFloat(e.target.value))} />
