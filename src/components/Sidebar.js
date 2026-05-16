@@ -19,6 +19,7 @@ export default function Sidebar({
   const { theme, toggle } = useTheme();
   const toast = useToast();
   const [search, setSearch] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const filtered = search
     ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
@@ -76,7 +77,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        {conversations.length > 3 && (
+        {conversations.length > 1 && (
           <div className="sidebar-search">
             <Search size={13} />
             <input
@@ -147,10 +148,18 @@ export default function Sidebar({
 
         <div className="sidebar-footer">
           {conversations.length > 0 && (
-            <button className="clear-all-btn" onClick={onClearAll}>
-              <Trash size={14} />
-              <span>Clear all chats</span>
-            </button>
+            confirmClear ? (
+              <div className="confirm-clear">
+                <span className="confirm-clear-text">Delete all chats?</span>
+                <button className="confirm-yes" onClick={() => { onClearAll(); setConfirmClear(false); }}>Yes</button>
+                <button className="confirm-no" onClick={() => setConfirmClear(false)}>No</button>
+              </div>
+            ) : (
+              <button className="clear-all-btn" onClick={() => setConfirmClear(true)}>
+                <Trash size={14} />
+                <span>Clear all chats</span>
+              </button>
+            )
           )}
           <button className="theme-toggle" onClick={toggle}>
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}

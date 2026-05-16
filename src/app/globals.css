@@ -1221,15 +1221,24 @@ a { color: var(--accent); text-decoration: none; }
   .header-right { gap: 1px; }
   .header-right .thinking-toggle-btn { display: none; }
   .header-right .token-counter { display: none; }
+  .header-right .icon-btn[title="Keyboard shortcuts (Ctrl+/)"] { display: none; }
   .empty-suggestions { grid-template-columns: 1fr; }
   .featured-grid { grid-template-columns: repeat(2, 1fr) !important; }
   .empty-title { font-size: 20px; }
   .chat-area { position: relative; }
+  .feature-strip { gap: 8px; }
+  .feature-item { font-size: 10px; }
 
   .message-action-buttons { opacity: 1 !important; }
   .sidebar-item-actions { display: flex !important; }
-  .sidebar-item-action, .sidebar-item-delete { min-width: 28px; min-height: 28px; display: flex; align-items: center; justify-content: center; }
-  .action-btn { min-width: 28px; min-height: 28px; }
+  .sidebar-item-action, .sidebar-item-delete { min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; }
+  .action-btn { min-width: 32px; min-height: 32px; }
+  .settings-item input[type="range"] { width: 100px; }
+}
+
+@media (max-width: 400px) {
+  .featured-grid { grid-template-columns: 1fr !important; }
+  .feature-strip { flex-wrap: wrap; gap: 6px; }
 }
 
 /* ===== Highlight.js override ===== */
@@ -1507,6 +1516,30 @@ a { color: var(--accent); text-decoration: none; }
 }
 
 .clear-all-btn:hover { color: #ef4444; background: rgba(239,68,68,0.06); }
+
+.confirm-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.confirm-clear-text { color: var(--text-secondary); flex: 1; }
+
+.confirm-yes, .confirm-no {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-yes { background: #ef4444; color: #fff; }
+.confirm-yes:hover { background: #dc2626; }
+.confirm-no { background: var(--bg-tertiary); color: var(--text-secondary); }
+.confirm-no:hover { background: var(--bg-hover); }
 
 .input-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 

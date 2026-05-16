@@ -15,6 +15,7 @@ const SUGGESTIONS = [
 const KEYBOARD_SHORTCUTS = [
   { keys: 'Enter', desc: 'Send message' },
   { keys: 'Shift + Enter', desc: 'New line' },
+  { keys: '/', desc: 'Focus input' },
   { keys: 'Ctrl + N', desc: 'New chat' },
   { keys: 'Ctrl + /', desc: 'Keyboard shortcuts' },
   { keys: 'Ctrl + Shift + S', desc: 'Share chat' },
@@ -242,6 +243,7 @@ export default function ChatArea({
 
   useEffect(() => {
     const handler = (e) => {
+      const tag = e.target.tagName;
       if (e.ctrlKey && e.key === 'n') { e.preventDefault(); onCreateChat(model); }
       if (e.ctrlKey && e.key === '/') { e.preventDefault(); setShowShortcuts(s => !s); }
       if (e.ctrlKey && e.shiftKey && e.key === 'S') { e.preventDefault(); handleShareChat(); }
@@ -249,6 +251,10 @@ export default function ChatArea({
         setShowShortcuts(false);
         setShowModelInfo(false);
         setShowSettings(false);
+      }
+      if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        textareaRef.current?.focus();
       }
     };
     window.addEventListener('keydown', handler);
