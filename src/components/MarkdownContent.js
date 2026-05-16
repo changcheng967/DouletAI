@@ -11,6 +11,17 @@ import { useToast } from './Toast';
 
 let mermaidCounter = 0;
 
+function loadMermaid() {
+  if (window.mermaid) return Promise.resolve(window.mermaid);
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+    script.onload = () => resolve(window.mermaid);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
 function CodeBlock({ children, className }) {
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -64,11 +75,11 @@ function MermaidBlock({ code }) {
   useEffect(() => {
     const id = `mermaid-${++mermaidCounter}`;
     let cancelled = false;
-    import('mermaid').then(mod => {
-      const m = mod.default;
-      m.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
-      return m.render(id, code);
-    })
+    loadMermaid()
+      .then(m => {
+        m.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
+        return m.render(id, code);
+      })
       .then(({ svg }) => { if (!cancelled) setSvg(svg); })
       .catch(err => { if (!cancelled) setError(String(err)); });
     return () => { cancelled = true; };
