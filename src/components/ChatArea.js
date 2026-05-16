@@ -1,9 +1,11 @@
 'use client';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { Menu, Send, Square, Sparkles, Brain, Lightbulb, Code2, BookOpen, ArrowDown, MessageSquarePlus, Settings2, Pencil, X as XIcon, Eye, Mic, MicOff, Keyboard, Share2, GitBranch, Timer, Thermometer, Hash, Zap, Clock, FileText, Globe, ImagePlus } from 'lucide-react';
-import MessageBubble from './MessageBubble';
 import ModelSelector from './ModelSelector';
 import { useToast } from './Toast';
+
+const MessageBubble = dynamic(() => import('./MessageBubble'), { ssr: false });
 
 const SUGGESTIONS = [
   { icon: <Lightbulb size={16} />, text: 'Explain quantum computing simply', label: 'Learn' },
