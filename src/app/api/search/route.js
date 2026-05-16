@@ -7,48 +7,61 @@ export async function POST(req) {
   }
 
   try {
-    // Use DuckDuckGo HTML lite for actual search results
-    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    });
-    const html = await res.text();
-
     const results = [];
-    // Parse result blocks from DuckDuckGo HTML
-    const resultRegex = /<a[^>]+class="result__a"[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>[\s\S]*?class="result__snippet"[^>]*>(.*?)<\/a>/gi;
-    let match;
-    while ((match = resultRegex.exec(html)) !== null && results.length < 6) {
-      const resultUrl = match[1].replace(/&amp;/g, '&');
-      const title = match[2].replace(/<[^>]+>/g, '').trim();
-      const snippet = match[3].replace(/<[^>]+>/g, '').trim();
-      if (title && snippet) {
-        results.push({ title, snippet, url: resultUrl });
-      }
-    }
 
-    // Fallback: also try the instant answer API
-    if (results.length === 0) {
-      const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-      const ddgRes = await fetch(ddgUrl, { headers: { 'User-Agent': 'DouletAI/1.0' } });
+    // DuckDuckGo instant answer API
+    const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    const ddgRes = await fetch(ddgUrl, {
+      headers: { 'User-Agent': 'DouletAI/1.0' },
+    });
+    if (ddgRes.ok) {
       const data = await ddgRes.json();
-
       if (data.AbstractText) {
         results.push({ title: data.AbstractSource || 'DuckDuckGo', snippet: data.AbstractText, url: data.AbstractURL || '' });
       }
       if (data.RelatedTopics) {
-        for (const topic of data.RelatedTopics.slice(0, 5)) {
-          if (topic.Text && topic.FirstURL && results.length < 6) {
+        for (const topic of data.RelatedTopics.slice(0, 8)) {
+          if (topic.Text && topic.FirstURL && results.length < 8) {
             results.push({ title: topic.Text.slice(0, 80), snippet: topic.Text, url: topic.FirstURL });
+          }
+          // Some topics have sub-topics
+          if (topic.Topics) {
+            for (const sub of topic.Topics.slice(0, 3)) {
+              if (sub.Text && sub.FirstURL && results.length < 8) {
+                results.push({ title: sub.Text.slice(0, 80), snippet: sub.Text, url: sub.FirstURL });
+              }
+            }
+          }
+        }
+      }
+      if (data.Results) {
+        for (const r of data.Results.slice(0, 3)) {
+          if (r.Text && r.FirstURL && results.length < 8) {
+            results.push({ title: r.Text.slice(0, 80), snippet: r.Text, url: r.FirstURL });
           }
         }
       }
     }
 
+    // Also try Wikipedia API for factual queries
+    try {
+      const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+      const wikiRes = await fetch(wikiUrl, { headers: { 'User-Agent': 'DouletAI/1.0' } });
+      if (wikiRes.ok) {
+        const wikiData = await wikiRes.json();
+        if (wikiData.extract && results.length < 8) {
+          results.push({
+            title: wikiData.title || 'Wikipedia',
+            snippet: wikiData.extract,
+            url: wikiData.content_urls?.desktop?.page || '',
+          });
+        }
+      }
+    } catch {}
+
     return NextResponse.json({ results });
   } catch (err) {
-    return NextResponse.json({ results: [], error: 'Search failed' }, { status: 500 });
+    console.error('Search error:', err);
+    return NextResponse.json({ results: [] });
   }
 }
