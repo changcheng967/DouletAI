@@ -1,12 +1,8 @@
 'use client';
-import dynamic from 'next/dynamic';
 import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { useToast } from './Toast';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-
-const MarkdownContent = dynamic(() => import('./MarkdownContent'), { ssr: false });
+import MarkdownContent from './MarkdownContent';
 
 function ThinkingSection({ content, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -22,7 +18,7 @@ function ThinkingSection({ content, defaultOpen = false }) {
       </button>
       {open && (
         <div className="thinking-content">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit' }}>{content}</pre>
         </div>
       )}
     </div>
