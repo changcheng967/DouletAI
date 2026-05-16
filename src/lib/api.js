@@ -103,6 +103,21 @@ export async function streamChat({ model, messages, thinking, max_tokens, temper
   }
 }
 
+export async function searchWeb(query) {
+  try {
+    const res = await fetch(`${API_BASE}/api/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.results || [];
+  } catch {
+    return [];
+  }
+}
+
 export async function generateTitle(userMessage) {
   try {
     const res = await fetch(`${API_BASE}/api/chat`, {

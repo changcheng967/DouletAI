@@ -132,6 +132,7 @@ export default function ChatArea({
   streaming,
   thinkingActive,
   waitingForFirst,
+  searchingWeb,
   onSend,
   onStop,
   onModelChange,
@@ -354,7 +355,7 @@ export default function ChatArea({
       onCreateChat(model);
       setTimeout(() => onSend(text, enableThinking, { temperature, maxTokens }, images), 50);
     } else {
-      onSend(text, enableThinking, { temperature, maxTokens }, images);
+      onSend(text, enableThinking, { temperature, maxTokens, webSearch: webSearchEnabled }, images);
     }
     setInput('');
     setPendingImages([]);
@@ -716,6 +717,12 @@ export default function ChatArea({
               )}
             </div>
           </div>
+          {searchingWeb && (
+            <div className="thinking-status">
+              <Globe size={13} className="thinking-pulse" />
+              <span>Searching the web...</span>
+            </div>
+          )}
           {(waitingForFirst || thinkingActive) && (
             <div className="thinking-status">
               {waitingForFirst && !thinkingActive ? (

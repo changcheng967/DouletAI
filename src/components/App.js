@@ -56,7 +56,7 @@ function AppContent() {
     });
   }, [active, rename]);
 
-  const { send, stop, streaming, thinkingActive, waitingForFirst } = useChat(handleMessagesUpdate, handleStreamComplete);
+  const { send, stop, streaming, thinkingActive, waitingForFirst, searchingWeb } = useChat(handleMessagesUpdate, handleStreamComplete);
 
   const buildMessages = useCallback((msgs, systemPrompt) => {
     const result = [];
@@ -157,6 +157,7 @@ function AppContent() {
         streaming={streaming}
         thinkingActive={thinkingActive}
         waitingForFirst={waitingForFirst}
+        searchingWeb={searchingWeb}
         onSend={handleSend}
         onStop={stop}
         onModelChange={handleModelChange}

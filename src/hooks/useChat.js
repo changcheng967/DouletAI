@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback, useRef } from 'react';
-import { streamChat } from '@/lib/api';
+import { streamChat, searchWeb } from '@/lib/api';
 
 export function useChat(onMessagesUpdate, onComplete) {
   const [streaming, setStreaming] = useState(false);
@@ -10,6 +10,7 @@ export function useChat(onMessagesUpdate, onComplete) {
   const [lastUsage, setLastUsage] = useState(null);
   const [lastDuration, setLastDuration] = useState(null);
   const [lastTtk, setLastTtk] = useState(null);
+  const [searchingWeb, setSearchingWeb] = useState(false);
   const abortRef = useRef(null);
 
   const send = useCallback(async (messages, model, enableThinking = false, options = {}) => {
@@ -22,6 +23,29 @@ export function useChat(onMessagesUpdate, onComplete) {
     setWaitingForFirst(true);
     setLastTtk(null);
     const startTime = Date.now();
+
+    let apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
+
+    // Web search: if enabled, search with the last user message and inject results
+    if (options.webSearch) {
+      const lastUser = [...messages].reverse().find(m => m.role === 'user');
+      if (lastUser) {
+        setSearchingWeb(true);
+        const query = lastUser.content.slice(0, 200);
+        const results = await searchWeb(query);
+        setSearchingWeb(false);
+
+        if (results.length > 0) {
+          const searchContext = results.map((r, i) => `[${i + 1}] ${r.snippet}${r.url ? ` (Source: ${r.url})` : ''}`).join('\n');
+          const searchPrompt = `The user enabled web search. Here are search results for "${query}":\n\n${searchContext}\n\nUse this information to help answer the user's question. Cite sources when relevant.`;
+          // Prepend search context as a system message
+          apiMessages = [
+            { role: 'system', content: searchPrompt },
+            ...apiMessages,
+          ];
+        }
+      }
+    }
 
     let contentAccum = '';
     let thinkingAccum = '';
@@ -40,7 +64,7 @@ export function useChat(onMessagesUpdate, onComplete) {
 
     await streamChat({
       model,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: apiMessages,
       thinking: enableThinking,
       max_tokens: options.maxTokens,
       temperature: options.temperature,
@@ -107,7 +131,8 @@ export function useChat(onMessagesUpdate, onComplete) {
     setStreaming(false);
     setThinkingActive(false);
     setWaitingForFirst(false);
+    setSearchingWeb(false);
   }, []);
 
-  return { send, stop, streaming, thinkingActive, waitingForFirst, error, lastUsage, lastDuration, lastTtk };
+  return { send, stop, streaming, thinkingActive, waitingForFirst, error, lastUsage, lastDuration, lastTtk, searchingWeb };
 }
