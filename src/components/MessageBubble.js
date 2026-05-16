@@ -1,84 +1,12 @@
 'use client';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeHighlight from 'rehype-highlight';
-import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css';
-import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer, ThumbsUp, ThumbsDown, Play } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { useToast } from './Toast';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-let mermaidCounter = 0;
-
-function CodeBlock({ children, className }) {
-  const [copied, setCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const toast = useToast();
-  const match = /language-(\w+)/.exec(className || '');
-  const lang = match ? match[1] : '';
-  const code = String(children).replace(/\n$/, '');
-  const canPreview = lang === 'html' || lang === 'htm';
-
-  if (!className && !code.includes('\n') && code.length < 60 && !code.includes('  ')) {
-    return <code className="inline-code">{children}</code>;
-  }
-
-  const copy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    toast('Code copied to clipboard', 'success');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="code-block">
-      <div className="code-block-header">
-        <span className="code-lang">{lang || 'code'}</span>
-        <div className="code-block-actions">
-          {canPreview && (
-            <button onClick={() => setShowPreview(!showPreview)} className="code-copy-btn preview-btn">
-              <Play size={13} /> {showPreview ? 'Hide' : 'Preview'}
-            </button>
-          )}
-          <button onClick={copy} className="code-copy-btn">
-            {copied ? <Check size={13} /> : <Copy size={13} />}
-            {copied ? 'Copied!' : 'Copy code'}
-          </button>
-        </div>
-      </div>
-      {showPreview && canPreview && (
-        <div className="code-preview">
-          <iframe src={`data:text/html;charset=utf-8,${encodeURIComponent(code)}`} sandbox="allow-scripts" title="Preview" />
-        </div>
-      )}
-      <pre><code className={className}>{children}</code></pre>
-    </div>
-  );
-}
-
-function MermaidBlock({ code }) {
-  const [svg, setSvg] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const id = `mermaid-${++mermaidCounter}`;
-    let cancelled = false;
-    let m = null;
-    import('mermaid').then(mod => {
-      m = mod.default;
-      m.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
-      return m.render(id, code);
-    })
-      .then(({ svg }) => { if (!cancelled) setSvg(svg); })
-      .catch(err => { if (!cancelled) setError(String(err)); });
-    return () => { cancelled = true; };
-  }, [code]);
-
-  if (error) return <div className="mermaid-error"><pre>{code}</pre><p>Diagram rendering failed</p></div>;
-  if (!svg) return <div className="mermaid-loading">Rendering diagram...</div>;
-  return <div className="mermaid-container" dangerouslySetInnerHTML={{ __html: svg }} />;
-}
+const MarkdownContent = dynamic(() => import('./MarkdownContent'), { ssr: false });
 
 function ThinkingSection({ content, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -107,7 +35,6 @@ function MessageMeta({ duration, usage, isStreaming, timestamp, ttk, contentLeng
     ? (usage.completion_tokens / parseFloat(duration)).toFixed(1)
     : null;
 
-  // Live tokens/sec estimation during streaming
   const [liveTps, setLiveTps] = useState(null);
   const startRef = useRef(null);
   const contentRef = useRef(0);
@@ -207,28 +134,7 @@ export default memo(function MessageBubble({ message, isStreaming, onRegenerate,
                 <ThinkingSection content={message.thinking} defaultOpen={isStreaming} />
               )}
               <div className={isStreaming && !message.content ? 'streaming-cursor' : ''}>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm, remarkMath]}
-                  rehypePlugins={[rehypeHighlight, rehypeKatex]}
-                  components={{
-                    pre: ({ children }) => <>{children}</>,
-                    code: ({ className, children, node, ...props }) => {
-                      const text = String(children);
-                      const isInline = !className && !text.includes('\n');
-                      if (isInline) return <code className="inline-code" {...props}>{children}</code>;
-                      const match = /language-(\w+)/.exec(className || '');
-                      if (match && match[1] === 'mermaid') return <MermaidBlock code={text} />;
-                      return <CodeBlock className={className}>{children}</CodeBlock>;
-                    },
-                    table: ({ children }) => (
-                      <div className="table-wrapper"><table>{children}</table></div>
-                    ),
-                    p: ({ children }) => <p>{children}</p>,
-                  }}
-                >
-                  {message.content}
-                </ReactMarkdown>
-                {isStreaming && message.content && <span className="typing-cursor" />}
+                <MarkdownContent content={message.content} isStreaming={isStreaming} />
               </div>
             </>
           )}
