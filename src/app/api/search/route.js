@@ -1,67 +1,95 @@
 import { NextResponse } from 'next/server';
 
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'identity',
+  'Connection': 'keep-alive',
+  'Upgrade-Insecure-Requests': '1',
+};
+
+function parseDDGResults(html) {
+  const results = [];
+  // Parse link elements with class result__a
+  const linkRegex = /<a[^>]+class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+  while ((match = linkRegex.exec(html)) !== null && results.length < 8) {
+    const url = match[1].replace(/&amp;/g, '&');
+    const title = match[2].replace(/<[^>]+>/g, '').trim();
+    // Find the snippet that follows this link
+    const afterLink = html.slice(match.index + match[0].length);
+    const snippetMatch = afterLink.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/i);
+    const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+    if (title) results.push({ title, snippet: snippet || title, url });
+  }
+  return results;
+}
+
+function parseLiteResults(html) {
+  const results = [];
+  // DDG Lite uses table rows with class="result-link" and class="result-snippet"
+  const rowRegex = /class="result-link"[^>]*><a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+  while ((match = rowRegex.exec(html)) !== null && results.length < 8) {
+    const url = match[1].replace(/&amp;/g, '&');
+    const title = match[2].replace(/<[^>]+>/g, '').trim();
+    // Find snippet in same row
+    const afterLink = html.slice(match.index, match.index + 2000);
+    const snippetMatch = afterLink.match(/class="result-snippet"[^>]*>([\s\S]*?)<\/td>/i);
+    const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+    if (title) results.push({ title, snippet: snippet || title, url });
+  }
+  return results;
+}
+
 export async function POST(req) {
   const { query } = await req.json();
   if (!query || typeof query !== 'string') {
     return NextResponse.json({ error: 'query is required' }, { status: 400 });
   }
 
+  const results = [];
+
   try {
-    const results = [];
-
-    // DuckDuckGo instant answer API
-    const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-    const ddgRes = await fetch(ddgUrl, {
-      headers: { 'User-Agent': 'DouletAI/1.0' },
+    // Strategy 1: DDG HTML search (POST form)
+    const htmlRes = await fetch('https://html.duckduckgo.com/html/', {
+      method: 'POST',
+      headers: {
+        ...BROWSER_HEADERS,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': 'https://duckduckgo.com/',
+        'Origin': 'https://duckduckgo.com',
+      },
+      body: `q=${encodeURIComponent(query)}&b=Search&kl=wt-wt`,
     });
-    if (ddgRes.ok) {
-      const data = await ddgRes.json();
-      if (data.AbstractText) {
-        results.push({ title: data.AbstractSource || 'DuckDuckGo', snippet: data.AbstractText, url: data.AbstractURL || '' });
-      }
-      if (data.RelatedTopics) {
-        for (const topic of data.RelatedTopics.slice(0, 8)) {
-          if (topic.Text && topic.FirstURL && results.length < 8) {
-            results.push({ title: topic.Text.slice(0, 80), snippet: topic.Text, url: topic.FirstURL });
-          }
-          // Some topics have sub-topics
-          if (topic.Topics) {
-            for (const sub of topic.Topics.slice(0, 3)) {
-              if (sub.Text && sub.FirstURL && results.length < 8) {
-                results.push({ title: sub.Text.slice(0, 80), snippet: sub.Text, url: sub.FirstURL });
-              }
-            }
-          }
-        }
-      }
-      if (data.Results) {
-        for (const r of data.Results.slice(0, 3)) {
-          if (r.Text && r.FirstURL && results.length < 8) {
-            results.push({ title: r.Text.slice(0, 80), snippet: r.Text, url: r.FirstURL });
-          }
-        }
-      }
+    if (htmlRes.ok) {
+      const html = await htmlRes.text();
+      const parsed = parseDDGResults(html);
+      results.push(...parsed);
     }
+  } catch {}
 
-    // Also try Wikipedia API for factual queries
+  // Strategy 2: DDG Lite (simpler HTML, less bot detection)
+  if (results.length < 3) {
     try {
-      const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-      const wikiRes = await fetch(wikiUrl, { headers: { 'User-Agent': 'DouletAI/1.0' } });
-      if (wikiRes.ok) {
-        const wikiData = await wikiRes.json();
-        if (wikiData.extract && results.length < 8) {
-          results.push({
-            title: wikiData.title || 'Wikipedia',
-            snippet: wikiData.extract,
-            url: wikiData.content_urls?.desktop?.page || '',
-          });
+      const liteRes = await fetch(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}&kl=wt-wt`, {
+        headers: BROWSER_HEADERS,
+      });
+      if (liteRes.ok) {
+        const liteHtml = await liteRes.text();
+        const parsed = parseLiteResults(liteHtml);
+        // Add only unique URLs
+        const existingUrls = new Set(results.map(r => r.url));
+        for (const r of parsed) {
+          if (!existingUrls.has(r.url)) {
+            results.push(r);
+            if (results.length >= 8) break;
+          }
         }
       }
     } catch {}
-
-    return NextResponse.json({ results });
-  } catch (err) {
-    console.error('Search error:', err);
-    return NextResponse.json({ results: [] });
   }
+
+  return NextResponse.json({ results: results.slice(0, 8) });
 }
