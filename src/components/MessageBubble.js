@@ -6,7 +6,7 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import mermaid from 'mermaid';
-import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer, ThumbsUp, ThumbsDown, Play } from 'lucide-react';
 import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { useToast } from './Toast';
 
@@ -16,9 +16,12 @@ let mermaidCounter = 0;
 
 function CodeBlock({ children, className }) {
   const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const toast = useToast();
   const match = /language-(\w+)/.exec(className || '');
+  const lang = match ? match[1] : '';
   const code = String(children).replace(/\n$/, '');
+  const canPreview = lang === 'html' || lang === 'htm';
 
   if (!className && !code.includes('\n') && code.length < 60 && !code.includes('  ')) {
     return <code className="inline-code">{children}</code>;
@@ -34,12 +37,24 @@ function CodeBlock({ children, className }) {
   return (
     <div className="code-block">
       <div className="code-block-header">
-        <span className="code-lang">{match ? match[1] : 'code'}</span>
-        <button onClick={copy} className="code-copy-btn">
-          {copied ? <Check size={13} /> : <Copy size={13} />}
-          {copied ? 'Copied!' : 'Copy code'}
-        </button>
+        <span className="code-lang">{lang || 'code'}</span>
+        <div className="code-block-actions">
+          {canPreview && (
+            <button onClick={() => setShowPreview(!showPreview)} className="code-copy-btn preview-btn">
+              <Play size={13} /> {showPreview ? 'Hide' : 'Preview'}
+            </button>
+          )}
+          <button onClick={copy} className="code-copy-btn">
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+            {copied ? 'Copied!' : 'Copy code'}
+          </button>
+        </div>
       </div>
+      {showPreview && canPreview && (
+        <div className="code-preview">
+          <iframe src={`data:text/html;charset=utf-8,${encodeURIComponent(code)}`} sandbox="allow-scripts" title="Preview" />
+        </div>
+      )}
       <pre><code className={className}>{children}</code></pre>
     </div>
   );
@@ -174,7 +189,16 @@ export default memo(function MessageBubble({ message, isStreaming, onRegenerate,
       <div className="message-body">
         <div className="message-content">
           {isUser ? (
-            <p style={{ whiteSpace: 'pre-wrap' }}>{message.content}</p>
+            <>
+              {message.images?.length > 0 && (
+                <div className="message-images">
+                  {message.images.map((img, i) => (
+                    <img key={i} src={img.dataUrl} alt={img.name || 'Image'} className="message-image" />
+                  ))}
+                </div>
+              )}
+              <p style={{ whiteSpace: 'pre-wrap' }}>{message.content}</p>
+            </>
           ) : (
             <>
               {message.thinking && (

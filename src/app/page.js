@@ -67,13 +67,18 @@ function App() {
     return result;
   }, [settings.customInstructions]);
 
-  const handleSend = useCallback((text, enableThinking, options) => {
+  const handleSend = useCallback((text, enableThinking, options, images) => {
     if (!active) return;
-    const userMsg = { role: 'user', content: text, timestamp: Date.now() };
+    const userMsg = { role: 'user', content: text, timestamp: Date.now(), images: images?.map(img => ({ dataUrl: img.dataUrl, name: img.name })) };
     const newMessages = [...active.messages, userMsg];
     updateMessages(active.id, newMessages);
     const apiMessages = buildMessages(newMessages, active.systemPrompt);
-    send(apiMessages, active.model, enableThinking, options);
+    const multimodal = apiMessages.map(m => {
+      const orig = newMessages.find(o => o.role === m.role && o.content === m.content && o.images?.length > 0);
+      if (orig?.images?.length > 0) return { ...m, content: [...orig.images.map(img => ({ type: 'image_url', image_url: { url: img.dataUrl } })), { type: 'text', text: m.content }] };
+      return m;
+    });
+    send(multimodal, active.model, enableThinking, options);
   }, [active, send, updateMessages, buildMessages]);
 
   const handleCreate = useCallback((modelId) => {

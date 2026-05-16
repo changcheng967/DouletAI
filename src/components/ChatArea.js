@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Menu, Send, Square, Sparkles, Brain, Lightbulb, Code2, BookOpen, ArrowDown, MessageSquarePlus, Settings2, Pencil, X as XIcon, Eye, Mic, MicOff, Keyboard, Share2, GitBranch, Timer, Thermometer, Hash, Zap, Clock, FileText } from 'lucide-react';
+import { Menu, Send, Square, Sparkles, Brain, Lightbulb, Code2, BookOpen, ArrowDown, MessageSquarePlus, Settings2, Pencil, X as XIcon, Eye, Mic, MicOff, Keyboard, Share2, GitBranch, Timer, Thermometer, Hash, Zap, Clock, FileText, Globe, ImagePlus } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import ModelSelector from './ModelSelector';
 import { useToast } from './Toast';
@@ -163,6 +163,8 @@ export default function ChatArea({
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [pendingImages, setPendingImages] = useState([]);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [templateSearch, setTemplateSearch] = useState('');
@@ -177,6 +179,26 @@ export default function ChatArea({
   const ttkTimerRef = useRef(null);
   const modelInfoRef = useRef(null);
   const settingsRef = useRef(null);
+  const imageInputRef = useRef(null);
+
+  const isVisionModel = useMemo(() => {
+    if (!models || !model) return false;
+    const m = models.find(x => x.id === model);
+    return m?.tags?.includes('vision');
+  }, [models, model]);
+
+  const addImages = useCallback((files) => {
+    const allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+    for (const file of files) {
+      if (!allowed.includes(file.type)) continue;
+      if (file.size > 10485760) continue;
+      const reader = new FileReader();
+      reader.onload = (e) => setPendingImages(prev => [...prev, { id: crypto.randomUUID(), dataUrl: e.target.result, name: file.name }]);
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  const removeImage = useCallback((id) => setPendingImages(prev => prev.filter(img => img.id !== id)), []);
 
   // Click outside to dismiss popups
   useEffect(() => {
@@ -324,15 +346,17 @@ export default function ChatArea({
 
   const handleSend = (overrideText) => {
     const text = (overrideText || input).trim();
-    if (!text || streaming) return;
+    if ((!text && pendingImages.length === 0) || streaming) return;
     if (!model) { toast('Please select a model first', 'info'); return; }
+    const images = pendingImages.length > 0 ? [...pendingImages] : undefined;
     if (!conversation) {
       onCreateChat(model);
-      setTimeout(() => onSend(text, enableThinking, { temperature, maxTokens }), 50);
+      setTimeout(() => onSend(text, enableThinking, { temperature, maxTokens }, images), 50);
     } else {
-      onSend(text, enableThinking, { temperature, maxTokens });
+      onSend(text, enableThinking, { temperature, maxTokens }, images);
     }
     setInput('');
+    setPendingImages([]);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
@@ -600,7 +624,23 @@ export default function ChatArea({
           </div>
         )}
         <div className="chat-input-container">
+          {pendingImages.length > 0 && (
+            <div className="image-previews">
+              {pendingImages.map(img => (
+                <div key={img.id} className="image-preview-item">
+                  <img src={img.dataUrl} alt="" />
+                  <button className="image-preview-remove" onClick={() => removeImage(img.id)}><XIcon size={10} /></button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="chat-input-wrapper">
+            {isVisionModel && (
+              <>
+                <input ref={imageInputRef} type="file" accept="image/*" multiple hidden onChange={e => { addImages(Array.from(e.target.files)); e.target.value = ''; }} />
+                <button className="icon-btn image-btn" onClick={() => imageInputRef.current?.click()} disabled={!model} title="Upload image"><ImagePlus size={15} /></button>
+              </>
+            )}
             <div className="template-picker-wrapper">
               <button
                 className="icon-btn template-btn"
@@ -650,6 +690,7 @@ export default function ChatArea({
             />
             <div className="input-meta">
               {charCount > 0 && <span className="char-count">{charCount}</span>}
+              <button className={`icon-btn web-search-btn ${webSearchEnabled ? 'active' : ''}`} onClick={() => setWebSearchEnabled(!webSearchEnabled)} disabled={!model} title="Web search"><Globe size={15} /></button>
               <button
                 className={`icon-btn voice-btn ${isListening ? 'voice-active' : ''}`}
                 onClick={toggleVoice}
