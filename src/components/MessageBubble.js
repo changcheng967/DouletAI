@@ -5,12 +5,9 @@ import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import mermaid from 'mermaid';
 import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer, ThumbsUp, ThumbsDown, Play } from 'lucide-react';
 import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { useToast } from './Toast';
-
-mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
 
 let mermaidCounter = 0;
 
@@ -67,7 +64,12 @@ function MermaidBlock({ code }) {
   useEffect(() => {
     const id = `mermaid-${++mermaidCounter}`;
     let cancelled = false;
-    mermaid.render(id, code)
+    let m = null;
+    import('mermaid').then(mod => {
+      m = mod.default;
+      m.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
+      return m.render(id, code);
+    })
       .then(({ svg }) => { if (!cancelled) setSvg(svg); })
       .catch(err => { if (!cancelled) setError(String(err)); });
     return () => { cancelled = true; };
