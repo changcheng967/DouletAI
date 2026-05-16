@@ -181,6 +181,10 @@ export default function ChatArea({
   const settingsRef = useRef(null);
   const imageInputRef = useRef(null);
 
+  const messages = conversation?.messages || [];
+  const model = conversation?.model || '';
+  const currentModel = models?.find(m => m.id === model);
+
   const isVisionModel = useMemo(() => {
     if (!models || !model) return false;
     const m = models.find(x => x.id === model);
@@ -214,10 +218,7 @@ export default function ChatArea({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showModelInfo, showSettings]);
 
-  const messages = conversation?.messages || [];
-  const model = conversation?.model || '';
 
-  const currentModel = models?.find(m => m.id === model);
   const charCount = input.length;
 
   const totalTokens = useMemo(() => messages.reduce((sum, m) => {
