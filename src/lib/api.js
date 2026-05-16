@@ -102,3 +102,27 @@ export async function streamChat({ model, messages, thinking, max_tokens, temper
     onError(err.message || 'Stream failed');
   }
 }
+
+export async function generateTitle(userMessage) {
+  try {
+    const res = await fetch(`${API_BASE}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'meta/llama-3.2-3b-instruct',
+        messages: [
+          { role: 'system', content: 'Generate a very short title (3-6 words) for a conversation that starts with this message. Return ONLY the title text, nothing else. No quotes, no punctuation at the end.' },
+          { role: 'user', content: userMessage.slice(0, 200) },
+        ],
+        stream: false,
+        max_tokens: 30,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content?.trim();
+    return content && content.length <= 80 ? content : null;
+  } catch {
+    return null;
+  }
+}

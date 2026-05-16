@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Plus, MessageSquare, Trash2, X, Sun, Moon, Download, Search, Pencil, Check, Trash, Pin, PinOff } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, X, Sun, Moon, Download, Search, Pencil, Check, Trash, Pin, PinOff, FolderPlus, Folder, FolderOpen } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { useToast } from './Toast';
 
@@ -15,24 +15,66 @@ export default function Sidebar({
   onTogglePin,
   onClose,
   open,
+  folders = [],
+  onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
+  onMoveToFolder,
 }) {
   const { theme, toggle } = useTheme();
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState(() => new Set());
+  const [showFolderMenu, setShowFolderMenu] = useState(null);
 
   const filtered = search
-    ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
+    ? conversations.filter(c => {
+        const q = search.toLowerCase();
+        if (c.title.toLowerCase().includes(q)) return true;
+        return (c.messages || []).some(m => m.content?.toLowerCase().includes(q));
+      }).map(c => {
+        const q = search.toLowerCase();
+        if (c.title.toLowerCase().includes(q)) return { ...c, searchSnippet: null };
+        const matchMsg = (c.messages || []).find(m => m.content?.toLowerCase().includes(q));
+        if (matchMsg) {
+          const idx = matchMsg.content.toLowerCase().indexOf(q);
+          const start = Math.max(0, idx - 30);
+          const end = Math.min(matchMsg.content.length, idx + search.length + 30);
+          const snippet = (start > 0 ? '...' : '') + matchMsg.content.slice(start, end) + (end < matchMsg.content.length ? '...' : '');
+          return { ...c, searchSnippet: snippet };
+        }
+        return c;
+      })
     : conversations;
 
   const pinned = filtered.filter(c => c.pinned);
+  const unfiled = filtered.filter(c => !c.pinned && !c.folderId);
   const today = [];
   const older = [];
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
-  for (const c of filtered.filter(c => !c.pinned)) {
+  for (const c of unfiled) {
     (now - c.createdAt < dayMs ? today : older).push(c);
   }
+
+  const toggleFolder = (id) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleCreateFolder = () => {
+    if (newFolderName.trim()) {
+      onCreateFolder(newFolderName.trim());
+      setNewFolderName('');
+      setShowNewFolder(false);
+    }
+  };
 
   const exportChat = (conv) => {
     let md = `# ${conv.title}\n\nModel: ${conv.model}\n\n---\n\n`;
@@ -53,6 +95,22 @@ export default function Sidebar({
     URL.revokeObjectURL(url);
     toast('Chat exported', 'success');
   };
+
+  const renderItem = (conv) => (
+    <ConversationItem
+      key={conv.id} conv={conv} active={conv.id === activeId}
+      onSelect={() => { onSelect(conv.id); onClose(); }}
+      onDelete={() => onDelete(conv.id)}
+      onExport={() => exportChat(conv)}
+      onRename={(t) => onRename(conv.id, t)}
+      onTogglePin={() => onTogglePin(conv.id)}
+      searchSnippet={conv.searchSnippet}
+      folders={folders}
+      onMoveToFolder={onMoveToFolder}
+      showFolderMenu={showFolderMenu}
+      setShowFolderMenu={setShowFolderMenu}
+    />
+  );
 
   return (
     <>
@@ -75,7 +133,28 @@ export default function Sidebar({
             <Plus size={16} />
             <span>New chat</span>
           </button>
+          {onCreateFolder && (
+            <button className="new-folder-btn" onClick={() => setShowNewFolder(!showNewFolder)}>
+              <FolderPlus size={16} />
+              <span>New folder</span>
+            </button>
+          )}
         </div>
+
+        {showNewFolder && (
+          <div className="sidebar-new-folder">
+            <input
+              type="text"
+              placeholder="Folder name..."
+              value={newFolderName}
+              onChange={e => setNewFolderName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') setShowNewFolder(false); }}
+              autoFocus
+            />
+            <button className="icon-btn" onClick={handleCreateFolder}><Check size={14} /></button>
+            <button className="icon-btn" onClick={() => { setShowNewFolder(false); setNewFolderName(''); }}><X size={14} /></button>
+          </div>
+        )}
 
         {conversations.length > 1 && (
           <div className="sidebar-search">
@@ -93,46 +172,37 @@ export default function Sidebar({
           {pinned.length > 0 && (
             <div className="sidebar-group">
               <div className="sidebar-group-label">Pinned</div>
-              {pinned.map(conv => (
-                <ConversationItem
-                  key={conv.id} conv={conv} active={conv.id === activeId}
-                  onSelect={() => { onSelect(conv.id); onClose(); }}
-                  onDelete={() => onDelete(conv.id)}
-                  onExport={() => exportChat(conv)}
-                  onRename={(t) => onRename(conv.id, t)}
-                  onTogglePin={() => onTogglePin(conv.id)}
-                />
-              ))}
+              {pinned.map(renderItem)}
             </div>
           )}
+          {folders.map(folder => {
+            const folderConvs = filtered.filter(c => c.folderId === folder.id);
+            if (search && folderConvs.length === 0) return null;
+            const isExpanded = expandedFolders.has(folder.id);
+            return (
+              <div key={folder.id} className="sidebar-group">
+                <div className="sidebar-group-label folder-label" onClick={() => toggleFolder(folder.id)}>
+                  {isExpanded ? <FolderOpen size={12} /> : <Folder size={12} />}
+                  <span>{folder.name}</span>
+                  <span className="folder-count">{folderConvs.length}</span>
+                  <button className="folder-delete" onClick={e => { e.stopPropagation(); onDeleteFolder(folder.id); }}>
+                    <Trash2 size={10} />
+                  </button>
+                </div>
+                {isExpanded && folderConvs.map(renderItem)}
+              </div>
+            );
+          })}
           {today.length > 0 && (
             <div className="sidebar-group">
               <div className="sidebar-group-label">Today</div>
-              {today.map(conv => (
-                <ConversationItem
-                  key={conv.id} conv={conv} active={conv.id === activeId}
-                  onSelect={() => { onSelect(conv.id); onClose(); }}
-                  onDelete={() => onDelete(conv.id)}
-                  onExport={() => exportChat(conv)}
-                  onRename={(t) => onRename(conv.id, t)}
-                  onTogglePin={() => onTogglePin(conv.id)}
-                />
-              ))}
+              {today.map(renderItem)}
             </div>
           )}
           {older.length > 0 && (
             <div className="sidebar-group">
               <div className="sidebar-group-label">Previous</div>
-              {older.map(conv => (
-                <ConversationItem
-                  key={conv.id} conv={conv} active={conv.id === activeId}
-                  onSelect={() => { onSelect(conv.id); onClose(); }}
-                  onDelete={() => onDelete(conv.id)}
-                  onExport={() => exportChat(conv)}
-                  onRename={(t) => onRename(conv.id, t)}
-                  onTogglePin={() => onTogglePin(conv.id)}
-                />
-              ))}
+              {older.map(renderItem)}
             </div>
           )}
           {conversations.length === 0 && (
@@ -171,7 +241,7 @@ export default function Sidebar({
   );
 }
 
-function ConversationItem({ conv, active, onSelect, onDelete, onExport, onRename, onTogglePin }) {
+function ConversationItem({ conv, active, onSelect, onDelete, onExport, onRename, onTogglePin, searchSnippet, folders, onMoveToFolder, showFolderMenu, setShowFolderMenu }) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(conv.title);
 
@@ -189,6 +259,7 @@ function ConversationItem({ conv, active, onSelect, onDelete, onExport, onRename
   };
 
   const msgCount = conv.messages.length;
+  const menuId = conv.id;
 
   return (
     <div className={`sidebar-item ${active ? 'active' : ''} ${conv.pinned ? 'pinned' : ''}`} onClick={onSelect}>
@@ -213,8 +284,28 @@ function ConversationItem({ conv, active, onSelect, onDelete, onExport, onRename
             {msgCount} msg{msgCount !== 1 ? 's' : ''} · {conv.model ? conv.model.split('/').pop() : ''}
           </span>
         )}
+        {searchSnippet && (
+          <span className="sidebar-item-snippet">{searchSnippet}</span>
+        )}
       </div>
       <div className="sidebar-item-actions">
+        {onMoveToFolder && folders?.length > 0 && (
+          <div className="folder-move-wrapper">
+            <button className="sidebar-item-action" onClick={e => { e.stopPropagation(); setShowFolderMenu(showFolderMenu === menuId ? null : menuId); }} title="Move to folder">
+              <FolderPlus size={12} />
+            </button>
+            {showFolderMenu === menuId && (
+              <div className="folder-move-menu" onClick={e => e.stopPropagation()}>
+                <button onClick={() => { onMoveToFolder(conv.id, null); setShowFolderMenu(null); }}>Remove from folder</button>
+                {folders.map(f => (
+                  <button key={f.id} onClick={() => { onMoveToFolder(conv.id, f.id); setShowFolderMenu(null); }}>
+                    <Folder size={10} /> {f.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <button className="sidebar-item-action" onClick={e => { e.stopPropagation(); onTogglePin(); }} title={conv.pinned ? 'Unpin' : 'Pin'}>
           {conv.pinned ? <PinOff size={12} /> : <Pin size={12} />}
         </button>

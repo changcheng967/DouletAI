@@ -1,10 +1,18 @@
 'use client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
-import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer } from 'lucide-react';
-import { useState, useEffect, useRef, memo } from 'react';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import mermaid from 'mermaid';
+import { User, Bot, Copy, Check, ChevronDown, ChevronRight, Brain, Clock, Zap, RotateCcw, AlertCircle, Pencil, GitBranch, Timer, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { useToast } from './Toast';
+
+mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
+
+let mermaidCounter = 0;
 
 function CodeBlock({ children, className }) {
   const [copied, setCopied] = useState(false);
@@ -35,6 +43,24 @@ function CodeBlock({ children, className }) {
       <pre><code className={className}>{children}</code></pre>
     </div>
   );
+}
+
+function MermaidBlock({ code }) {
+  const [svg, setSvg] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const id = `mermaid-${++mermaidCounter}`;
+    let cancelled = false;
+    mermaid.render(id, code)
+      .then(({ svg }) => { if (!cancelled) setSvg(svg); })
+      .catch(err => { if (!cancelled) setError(String(err)); });
+    return () => { cancelled = true; };
+  }, [code]);
+
+  if (error) return <div className="mermaid-error"><pre>{code}</pre><p>Diagram rendering failed</p></div>;
+  if (!svg) return <div className="mermaid-loading">Rendering diagram...</div>;
+  return <div className="mermaid-container" dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
 function ThinkingSection({ content, defaultOpen = false }) {
@@ -128,7 +154,7 @@ function MessageMeta({ duration, usage, isStreaming, timestamp, ttk, contentLeng
   );
 }
 
-export default memo(function MessageBubble({ message, isStreaming, onRegenerate, onEdit, onBranch }) {
+export default memo(function MessageBubble({ message, isStreaming, onRegenerate, onEdit, onBranch, onRate }) {
   const [copiedMsg, setCopiedMsg] = useState(false);
   const toast = useToast();
   const isUser = message.role === 'user';
@@ -156,14 +182,16 @@ export default memo(function MessageBubble({ message, isStreaming, onRegenerate,
               )}
               <div className={isStreaming && !message.content ? 'streaming-cursor' : ''}>
                 <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeHighlight, rehypeKatex]}
                   components={{
                     pre: ({ children }) => <>{children}</>,
                     code: ({ className, children, node, ...props }) => {
                       const text = String(children);
                       const isInline = !className && !text.includes('\n');
                       if (isInline) return <code className="inline-code" {...props}>{children}</code>;
+                      const match = /language-(\w+)/.exec(className || '');
+                      if (match && match[1] === 'mermaid') return <MermaidBlock code={text} />;
                       return <CodeBlock className={className}>{children}</CodeBlock>;
                     },
                     table: ({ children }) => (
@@ -192,6 +220,24 @@ export default memo(function MessageBubble({ message, isStreaming, onRegenerate,
             />
             {!isStreaming && (
               <div className="message-action-buttons">
+                {onRate && (
+                  <div className="rating-buttons">
+                    <button
+                      onClick={() => onRate(message.rating === 'up' ? null : 'up')}
+                      className={`action-btn rating-btn ${message.rating === 'up' ? 'rated-up' : ''}`}
+                      title="Good response"
+                    >
+                      <ThumbsUp size={13} />
+                    </button>
+                    <button
+                      onClick={() => onRate(message.rating === 'down' ? null : 'down')}
+                      className={`action-btn rating-btn ${message.rating === 'down' ? 'rated-down' : ''}`}
+                      title="Bad response"
+                    >
+                      <ThumbsDown size={13} />
+                    </button>
+                  </div>
+                )}
                 <button onClick={copyMessage} className="action-btn" title="Copy response">
                   {copiedMsg ? <Check size={13} /> : <Copy size={13} />}
                 </button>

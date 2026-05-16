@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Menu, Send, Square, Sparkles, Brain, Lightbulb, Code2, BookOpen, ArrowDown, MessageSquarePlus, Settings2, Pencil, X as XIcon, Eye, Mic, MicOff, Keyboard, Share2, GitBranch, Timer, Thermometer, Hash, Zap, Clock } from 'lucide-react';
+import { Menu, Send, Square, Sparkles, Brain, Lightbulb, Code2, BookOpen, ArrowDown, MessageSquarePlus, Settings2, Pencil, X as XIcon, Eye, Mic, MicOff, Keyboard, Share2, GitBranch, Timer, Thermometer, Hash, Zap, Clock, FileText } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import ModelSelector from './ModelSelector';
 import { useToast } from './Toast';
@@ -140,9 +140,18 @@ export default function ChatArea({
   onRegenerate,
   onEditMessage,
   onBranch,
+  onRateMessage,
   models,
   systemPrompt,
   onSystemPromptChange,
+  settings,
+  onUpdateSetting,
+  templates,
+  onCreateTemplate,
+  onDeleteTemplate,
+  presets,
+  onCreatePreset,
+  onDeletePreset,
 }) {
   const [input, setInput] = useState('');
   const [enableThinking, setEnableThinking] = useState(false);
@@ -155,6 +164,8 @@ export default function ChatArea({
   const [isListening, setIsListening] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState('');
   const [temperature, setTemperature] = useState(0.6);
   const [maxTokens, setMaxTokens] = useState(2048);
   const [ttkLive, setTtkLive] = useState(null);
@@ -411,6 +422,22 @@ export default function ChatArea({
       {showSettings && (
         <div className="settings-bar" ref={settingsRef}>
           <div className="settings-item">
+            <label><Thermometer size={12} /> Preset</label>
+            <select
+              className="preset-select"
+              value=""
+              onChange={e => {
+                const p = presets?.find(pr => pr.id === e.target.value);
+                if (p) { setTemperature(p.temperature); setMaxTokens(p.maxTokens); }
+              }}
+            >
+              <option value="" disabled>Load preset...</option>
+              {presets?.map(p => (
+                <option key={p.id} value={p.id}>{p.name} (T:{p.temperature} M:{p.maxTokens})</option>
+              ))}
+            </select>
+          </div>
+          <div className="settings-item">
             <label><Thermometer size={12} /> Temp</label>
             <input type="range" min="0" max="2" step="0.1" value={temperature} onChange={e => setTemperature(parseFloat(e.target.value))} />
             <span className="settings-value">{temperature.toFixed(1)}</span>
@@ -419,6 +446,26 @@ export default function ChatArea({
             <label><Hash size={12} /> Max tokens</label>
             <input type="range" min="256" max="8192" step="256" value={maxTokens} onChange={e => setMaxTokens(parseInt(e.target.value))} />
             <span className="settings-value">{maxTokens.toLocaleString()}</span>
+          </div>
+          <button
+            className="action-btn preset-save-btn"
+            onClick={() => {
+              const name = prompt('Preset name:');
+              if (name?.trim()) onCreatePreset?.(name.trim(), temperature, maxTokens);
+            }}
+            title="Save current settings as preset"
+          >
+            <Plus size={12} /> Save preset
+          </button>
+          <div className="settings-item settings-item-wide">
+            <label><FileText size={12} /> Custom instructions</label>
+            <textarea
+              value={settings?.customInstructions || ''}
+              onChange={e => onUpdateSetting?.('customInstructions', e.target.value)}
+              placeholder="Tell the AI how to behave (applies to all chats)..."
+              className="settings-textarea"
+              rows={2}
+            />
           </div>
         </div>
       )}
@@ -525,6 +572,7 @@ export default function ChatArea({
                   onRegenerate={i === lastAssistantIdx && !streaming ? () => onRegenerate(i) : undefined}
                   onEdit={msg.role === 'user' && !streaming ? () => setEditingMsg(i) : undefined}
                   onBranch={msg.role === 'user' && !streaming && onBranch ? () => onBranch(i) : undefined}
+                  onRate={msg.role === 'assistant' && !streaming ? (rating) => onRateMessage(i, rating) : undefined}
                 />
               )}
             </div>
@@ -553,6 +601,44 @@ export default function ChatArea({
         )}
         <div className="chat-input-container">
           <div className="chat-input-wrapper">
+            <div className="template-picker-wrapper">
+              <button
+                className="icon-btn template-btn"
+                onClick={() => setShowTemplatePicker(!showTemplatePicker)}
+                disabled={!model}
+                title="Prompt templates"
+              >
+                <BookOpen size={15} />
+              </button>
+              {showTemplatePicker && (
+                <div className="template-picker">
+                  <input
+                    type="text"
+                    placeholder="Search templates..."
+                    value={templateSearch}
+                    onChange={e => setTemplateSearch(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="template-picker-list">
+                    {(templates || [])
+                      .filter(t => !templateSearch || t.name.toLowerCase().includes(templateSearch.toLowerCase()) || t.prompt.toLowerCase().includes(templateSearch.toLowerCase()))
+                      .map(t => (
+                        <button
+                          key={t.id}
+                          className="template-picker-item"
+                          onClick={() => { setInput(t.prompt + '\n\n'); setShowTemplatePicker(false); setTemplateSearch(''); textareaRef.current?.focus(); }}
+                        >
+                          <span className="template-picker-name">{t.name}</span>
+                          <span className="template-picker-preview">{t.prompt.slice(0, 60)}{t.prompt.length > 60 ? '...' : ''}</span>
+                        </button>
+                      ))}
+                    {(templates || []).filter(t => !templateSearch || t.name.toLowerCase().includes(templateSearch.toLowerCase()) || t.prompt.toLowerCase().includes(templateSearch.toLowerCase())).length === 0 && (
+                      <div className="template-picker-empty">No templates found</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <textarea
               ref={textareaRef}
               value={input}

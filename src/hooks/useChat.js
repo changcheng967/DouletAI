@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { streamChat } from '@/lib/api';
 
-export function useChat(onMessagesUpdate) {
+export function useChat(onMessagesUpdate, onComplete) {
   const [streaming, setStreaming] = useState(false);
   const [thinkingActive, setThinkingActive] = useState(false);
   const [waitingForFirst, setWaitingForFirst] = useState(false);
@@ -83,7 +83,9 @@ export function useChat(onMessagesUpdate) {
         setStreaming(false);
         setThinkingActive(false);
         setWaitingForFirst(false);
-        onMessagesUpdate([...messages, { ...assistantMsg }]);
+        const finalMessages = [...messages, { ...assistantMsg }];
+        onMessagesUpdate(finalMessages);
+        onComplete?.(finalMessages);
       },
       onError: (err) => {
         setError(err);
@@ -97,7 +99,7 @@ export function useChat(onMessagesUpdate) {
         setWaitingForFirst(false);
       },
     });
-  }, [onMessagesUpdate]);
+  }, [onMessagesUpdate, onComplete]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();

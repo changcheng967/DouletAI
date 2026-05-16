@@ -2,6 +2,17 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 const STORAGE_KEY = 'douletai_conversations';
+const FOLDERS_KEY = 'douletai_folders';
+
+function loadFolders() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const data = localStorage.getItem(FOLDERS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
 
 function loadConversations() {
   if (typeof window === 'undefined') return [];
@@ -15,6 +26,7 @@ function loadConversations() {
 
 export function useConversations() {
   const [conversations, setConversations] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const saveTimerRef = useRef(null);
   const latestRef = useRef(null);
@@ -22,12 +34,19 @@ export function useConversations() {
   useEffect(() => {
     const stored = loadConversations();
     setConversations(stored);
+    setFolders(loadFolders());
     if (stored.length > 0) setActiveId(stored[0].id);
   }, []);
 
-  const save = useCallback((updated) => {
+  const save = useCallback((updated, updatedFolders) => {
     latestRef.current = updated;
     setConversations(updated);
+    if (updatedFolders !== undefined) {
+      setFolders(updatedFolders);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(FOLDERS_KEY, JSON.stringify(updatedFolders));
+      }
+    }
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       if (latestRef.current && typeof window !== 'undefined') {
@@ -130,9 +149,48 @@ export function useConversations() {
     save(updated);
   }, [conversations, save]);
 
+  const rateMessage = useCallback((convId, msgIndex, rating) => {
+    const updated = conversations.map(c => {
+      if (c.id !== convId) return c;
+      const messages = c.messages.map((m, i) =>
+        i === msgIndex ? { ...m, rating } : m
+      );
+      return { ...c, messages };
+    });
+    save(updated);
+  }, [conversations, save]);
+
+  const createFolder = useCallback((name) => {
+    const folder = { id: crypto.randomUUID(), name, createdAt: Date.now() };
+    const updated = [...folders, folder];
+    save(conversations, updated);
+    return folder;
+  }, [conversations, folders, save]);
+
+  const renameFolder = useCallback((folderId, name) => {
+    const updated = folders.map(f => f.id === folderId ? { ...f, name } : f);
+    save(conversations, updated);
+  }, [conversations, folders, save]);
+
+  const deleteFolder = useCallback((folderId) => {
+    const updatedFolders = folders.filter(f => f.id !== folderId);
+    const updatedConvs = conversations.map(c =>
+      c.folderId === folderId ? { ...c, folderId: null } : c
+    );
+    save(updatedConvs, updatedFolders);
+  }, [conversations, folders, save]);
+
+  const moveToFolder = useCallback((convId, folderId) => {
+    const updated = conversations.map(c =>
+      c.id === convId ? { ...c, folderId: folderId || null } : c
+    );
+    save(updated);
+  }, [conversations, save]);
+
   return {
     conversations, active, activeId, setActiveId,
     create, remove, clearAll, rename, togglePin,
-    updateMessages, updateModel, updateSystemPrompt,
+    updateMessages, updateModel, updateSystemPrompt, rateMessage,
+    folders, createFolder, renameFolder, deleteFolder, moveToFolder,
   };
 }
