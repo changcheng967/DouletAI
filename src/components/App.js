@@ -12,6 +12,16 @@ import { useTemplates } from '@/hooks/useTemplates';
 import { generateTitle } from '@/lib/api';
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { models } = useModels();
   const { settings, updateSetting, presets, createPreset, deletePreset } = useSettings();
